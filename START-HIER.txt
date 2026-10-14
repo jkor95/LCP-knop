@@ -1,0 +1,21 @@
+LCP KNOP - TESTPAKKET V1.0
+=========================
+
+UPLOAD OP GITHUB:
+Upload index.html, README.md en (optioneel) .nojekyll.
+Maak repository jkor95/LCP-knop, Public, branch main.
+Zet bij Settings > Pages: Deploy from a branch, main, /(root).
+
+START OP SCHOOL:
+Open https://jkor95.github.io/LCP-knop/
+Genereer een code, voeg exact dezelfde code toe in de gratis iPhone-app ntfy.
+Druk op de groene oproepknop en controleer of de melding komt.
+Download via de webpagina het persoonlijke bestand LCP-Windows-Test.cmd.
+Start het en kies optie 2 voor een vergrendelingstest na 20 seconden.
+
+LEES OOK README.md VOOR ALLE STAPPEN EN BEPERKINGEN.
+
+BELANGRIJK:
+Upload het gegenereerde persoonlijke .cmd-bestand NIET op GitHub.
+Vergrendeling is niet hetzelfde als slaapstand.
+Geen leerlinggegevens; dit is alleen een demo.
