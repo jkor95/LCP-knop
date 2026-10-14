@@ -5,7 +5,7 @@
 <script type="module">
 import{createClient}from'https://esm.sh/@supabase/supabase-js@2.57.0';
 const db=createClient('https://jrlcofhpxvnlqzirjdbd.supabase.co','sb_publishable_l-rXo1gmk9dGQ2QogsUexw_bAZfd84R'),el=id=>document.getElementById(id);let user,role,channel,lastSeen=null,pollTimer=null;
-async function notifyCall(c){if(!('Notification'in window)||Notification.permission!=='granted')return;try{if('serviceWorker'in navigator){const reg=await navigator.serviceWorker.ready;await reg.showNotification('LCP oproep',{body:c.message||'Er staat iemand bij het LCP',tag:'lcp-'+c.id,icon:'./icon-192.png'});}else new Notification('LCP oproep',{body:c.message||'Nieuwe oproep'});}catch(e){console.warn('Melding niet getoond',e);}}
+async function notifyCall(c){if(!('Notification'in window)||Notification.permission!=='granted')return;try{if('serviceWorker'in navigator){const reg=await navigator.serviceWorker.ready;const push=await reg.pushManager?.getSubscription();if(push)return;}if('serviceWorker'in navigator){const reg=await navigator.serviceWorker.ready;await reg.showNotification('LCP oproep',{body:c.message||'Er staat iemand bij het LCP',tag:'lcp-'+c.id,icon:'./icon-192.png'});}else new Notification('LCP oproep',{body:c.message||'Nieuwe oproep'});}catch(e){console.warn('Melding niet getoond',e);}}
 async function checkNew(){if(!user)return;const{data,error}=await db.from('lcp_calls').select('id,message,created_at').order('created_at',{ascending:false}).limit(1);if(error||!data?.length)return;const newest=data[0];if(lastSeen===null){lastSeen=newest.id;return;}if(newest.id!==lastSeen){lastSeen=newest.id;await notifyCall(newest);await load();}}
 
 function fail(error){el('error').textContent=error?.message||String(error)}
