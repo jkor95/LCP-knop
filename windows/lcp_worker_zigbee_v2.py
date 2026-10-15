@@ -239,7 +239,7 @@ class LCPWorker:
             if now < opened + minutes * 60 or now < state.get("retry_after", 0):
                 continue
             try:
-                self.send(name, device.get("message_left_open", "LCP – deur staat te lang open"))
+                self.send(name, device.get("message_left_open", "LCP – deur staat te lang open").replace("{minuten}", str(minutes)))
                 state["long_sent"] = True
                 self.save_states()
             except Exception as exc:
