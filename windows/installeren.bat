@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if "%~d0"=="\\\\" goto networkpath
 cd /d "%~dp0"
 set "PY="
 py -3.13 -c "import sys" >nul 2>&1 && set "PY=py -3.13"
@@ -26,3 +27,9 @@ if errorlevel 1 (echo Automatisch starten instellen mislukt. & pause & exit /b 1
 echo Gereed. LCP Knop start voortaan na aanmelden bij Windows.
 start "" "%VENV%\Scripts\pythonw.exe" "%~dp0lcp_receiver.py"
 pause
+
+:networkpath
+echo FOUT: Installeer LCP Knop vanuit een lokale map, bijvoorbeeld C:\LCP-Knop\windows.
+echo Deze map staat op een netwerkschijf en wordt niet ondersteund.
+pause
+exit /b 1
