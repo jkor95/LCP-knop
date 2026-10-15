@@ -1,0 +1,40 @@
+name: LCP sensor tests
+on:
+  push:
+    paths:
+      - 'windows/lcp_worker_zigbee_v2.py'
+      - 'settings.html'
+      - 'app.html'
+      - 'tests/**'
+      - '.github/workflows/lcp-sensors.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Python syntax
+        run: python -m py_compile windows/lcp_worker_zigbee_v2.py
+      - name: Install lightweight dependencies
+        run: python -m pip install 'requests>=2.32,<3' 'paho-mqtt>=2,<3'
+      - name: Test LCP sensor behavior
+        run: python -m unittest discover -s tests -v
+      - name: Check browser JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re, pathlib
+          for name in ('app.html','settings.html'):
+              text = pathlib.Path(name).read_text(encoding='utf-8')
+              js = re.search(r'<script type="module">([\s\S]*?)</script>',text)
+              if not js: raise SystemExit(f'Geen module JavaScript in {name}')
+              pathlib.Path(name + '.mjs').write_text(js.group(1),encoding='utf-8')
+          PY
+          node --check app.html.mjs
+          node --check settings.html.mjs
