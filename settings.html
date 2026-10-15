@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#123d36"><link rel="manifest" href="./manifest.webmanifest"><title>LCP – Apparaten en meldingen</title>
+<style>
+:root{color-scheme:light}*{box-sizing:border-box}body{font:15px/1.5 system-ui,-apple-system,sans-serif;background:#f1f6f3;color:#173d35;margin:0}main{max-width:820px;padding:18px;margin:auto}h1{margin:9px 0 2px;font-size:1.75rem}h2{margin:0 0 10px;font-size:1.16rem}p{margin:7px 0 14px}.sub{color:#5d766b;font-size:.92rem}.panel{background:#fff;border:1px solid #e1ebe6;border-radius:16px;padding:19px;margin:15px 0;box-shadow:0 2px 12px #143a2910}a{color:#146949;font-weight:650;text-decoration:none}label{display:block;font-weight:650;margin:10px 0 5px}input:not([type=checkbox]),textarea,select{font:inherit;color:inherit;min-height:43px;width:100%;border:1px solid #bfd1c8;border-radius:9px;background:#fff;padding:9px 11px}textarea{min-height:76px;resize:vertical}input[type=checkbox]{width:17px;height:17px;accent-color:#14794f}button{font:inherit;font-weight:700;border:0;background:#14734f;color:#fff;border-radius:9px;min-height:43px;padding:9px 14px;cursor:pointer}button.alt{background:#e3efe8;color:#145b3f}button.warn{background:#fff0ed;color:#9b3328}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;gap:9px;flex-wrap:wrap}.actions button{flex:1}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.check{display:flex;gap:10px;align-items:center;font-weight:500}.check label{margin:0}.schedule-row{border:1px solid #dbe8e0;border-radius:12px;padding:12px;margin:10px 0;background:#f9fcfa}.days{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}.day{display:inline-flex;align-items:center;gap:4px;background:#e8f1eb;padding:6px 8px;border-radius:8px;font-size:.85rem}.day input{margin:0}.schedule-times{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}.schedule-times button{min-width:43px}#error{color:#a32323}#status{color:#185d41}#form{display:none}.note{border-left:4px solid #248659;padding:10px 12px;background:#f0f8f3;border-radius:6px}.badge{font-size:.81rem;padding:3px 8px;border-radius:20px;background:#e6f2eb;color:#1d6648;display:inline-block}.subheading{font-size:1.04rem;font-weight:750;margin:18px 0 4px}@media(max-width:560px){.twocol{grid-template-columns:1fr}.schedule-times{grid-template-columns:1fr 1fr auto}main{padding:12px}.panel{padding:15px}.actions button{flex-basis:100%}}
+</style></head><body><main>
+<a href="./app.html">← Terug naar LCP</a><h1>Apparaten en meldingen</h1><p class="sub">Beheer Zigbee-knoppen, deursensoren, meldteksten, een automatisch weekschema en handmatige beveiliging.</p>
+<div id="notauthorized" class="panel">Toegang controleren…</div><p id="error" role="alert"></p>
+<div id="form">
+<section class="panel"><h2>Gekoppelde apparaten</h2><label for="deviceSelect">Apparaat beheren</label><select id="deviceSelect"></select>
+<div class="actions" style="margin-top:12px"><button id="newButton" class="alt" type="button">+ Nieuwe knop</button><button id="newDoor" class="alt" type="button">+ Nieuwe deursensor</button></div><p class="sub">Koppel een nieuwe sensor eerst in Zigbee2MQTT op de laptop. De naam hieronder moet exact overeenkomen met de Friendly name in Zigbee2MQTT.</p></section>
+<section class="panel"><h2>Apparaatinstellingen <span class="badge" id="deviceBadge"></span></h2><div class="twocol"><div><label for="label">Naam in LCP</label><input id="label" maxlength="100" required></div><div><label for="friendly_name">Zigbee2MQTT Friendly name</label><input id="friendly_name" maxlength="80" required spellcheck="false"></div></div>
+<label class="check" style="margin-top:14px"><input type="checkbox" id="enabled"> <span>Apparaat activeren voor meldingen</span></label>
+<div id="buttonFields"><label for="message_button">Tekst pushmelding na knopdruk</label><textarea id="message_button" maxlength="240" required></textarea><p class="sub">De pushmelding gebruikt deze tekst. De titel van de pushmelding blijft voorlopig 'LCP oproep'.</p></div>
+<div id="doorFields">
+<h3 class="subheading">Deurbeveiliging</h3><label for="arming_mode">Beveiliging</label><select id="arming_mode"><option value="auto">Automatisch volgens weekschema</option><option value="armed">Handmatig AAN (schema tijdelijk negeren)</option><option value="disarmed">Handmatig UIT (schema tijdelijk negeren)</option></select><p class="sub" id="armedStatus"></p>
+<label class="check"><input type="checkbox" id="alert_open_when_armed"><span>Directe waarschuwing als de deur opengaat terwijl de beveiliging aanstaat</span></label>
+<label for="message_open">Tekst directe waarschuwing</label><textarea id="message_open" maxlength="240"></textarea>
+<div class="note">Een waarschuwing voor een deur die te lang openstaat werkt apart van de beveiligingstijden: ook overdag, tenzij je deze optie uitzet.</div>
+<label class="check" style="margin-top:12px"><input type="checkbox" id="alert_open_long"><span>Waarschuwing als deur te lang open blijft</span></label>
+<div class="twocol"><div><label for="open_limit_minutes">Aantal minuten open</label><input type="number" id="open_limit_minutes" min="1" max="1440" step="1"></div><div><label for="message_left_open">Tekst waarschuwing te lang open</label><textarea id="message_left_open" maxlength="240"></textarea></div></div>
+<h3 class="subheading">Automatisch weekschema</h3><p class="sub">Per tijdvak kies je dagen en begin/eindtijd. Als de eindtijd eerder is dan de begintijd, loopt de periode door tot de volgende dag. 00:00 tot 00:00 is een volledige dag. Tijdzone: Nederland.</p>
+<div id="schedule"></div><button class="alt" type="button" id="addWindow">+ Tijdvak toevoegen</button>
+</div>
+<div class="actions" style="margin-top:18px"><button type="button" id="save">Instellingen opslaan</button><button type="button" id="delete" class="warn">Apparaat verwijderen</button></div>
+<p id="status" role="status"></p></section>
+<section class="panel"><h2>Hoe werkt het?</h2><p><b>Knop:</b> een korte druk verstuurt de ingestelde tekst. <b>Deur:</b> een melding bij openen komt alleen wanneer de beveiliging actief is. De waarschuwing na de ingestelde open tijd werkt ook wanneer de beveiliging uitstaat.</p><p class="sub">Wijzigingen in meldteksten en beveiligingsstand worden door de bijgewerkte laptop-worker ongeveer iedere 15 seconden opgehaald. Zonder die worker blijven de huidige SONOFF-meldingen ongewijzigd.</p></section>
+</div></main>
+<script type="module">
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+const db=createClient('https://jrlcofhpxvnlqzirjdbd.supabase.co','sb_publishable_l-rXo1gmk9dGQ2QogsUexw_bAZfd84R');
+const el=id=>document.getElementById(id), days=['Ma','Di','Wo','Do','Vr','Za','Zo'];let devices=[],editing=null;
+function status(t,err=false){el(err?'error':'status').textContent=t;if(!err)el('error').textContent='';}
+function setVisible(){const contact=editing&&editing.device_type==='contact';el('doorFields').style.display=contact?'block':'none';el('buttonFields').style.display=contact?'none':'block';el('deviceBadge').textContent=contact?'Deursensor':'Knop';el('delete').style.display=editing?.friendly_name==='LCP_knop'?'none':'block';}
+function addScheduleRow(w={days:[1,2,3,4,5],start:'17:00',end:'08:00'}){
+ const row=document.createElement('div');row.className='schedule-row';
+ const d=document.createElement('div');d.className='days';
+ days.forEach((name,i)=>{const wrap=document.createElement('label');wrap.className='day';const chk=document.createElement('input');chk.type='checkbox';chk.value=String(i+1);chk.checked=(w.days||[]).includes(i+1);wrap.append(chk,document.createTextNode(name));d.append(wrap);});
+ const times=document.createElement('div');times.className='schedule-times';
+ const b=document.createElement('div'),f=document.createElement('div');
+ const start=document.createElement('input'),end=document.createElement('input');start.type='time';end.type='time';start.value=w.start||'17:00';end.value=w.end||'08:00';start.className='period-start';end.className='period-end';
+ const sb=document.createElement('label'),eb=document.createElement('label');sb.textContent='Vanaf';eb.textContent='Tot';b.append(sb,start);f.append(eb,end);
+ const del=document.createElement('button');del.type='button';del.className='warn';del.textContent='×';del.title='Tijdvak verwijderen';del.onclick=()=>row.remove();times.append(b,f,del);row.append(d,times);el('schedule').append(row);
+}
+function getSchedule(){
+ return [...el('schedule').querySelectorAll('.schedule-row')].map(row=>{
+ const days=[...row.querySelectorAll('.days input:checked')].map(c=>Number(c.value));
+ const start=row.querySelector('.period-start').value,end=row.querySelector('.period-end').value;
+ if(!days.length||!start||!end)throw Error('Kies voor elk tijdvak ten minste één dag en een begin- en eindtijd.');
+ return {days,start,end};
+ });
+}
+function activeNow(row){
+ if(row.arming_mode==='armed')return true;if(row.arming_mode==='disarmed')return false;
+ const now=new Date(),parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(now).filter(x=>['weekday','hour','minute'].includes(x.type)).map(x=>[x.type,x.value]));
+ const wd={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7}[parts.weekday];if(!wd)return false;
+ const minute=Number(parts.hour)*60+Number(parts.minute),prev=wd===1?7:wd-1;
+ const toMin=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5));
+ return (row.schedule||[]).some(w=>{let a=toMin(w.start),b=toMin(w.end),d=w.days||[];if(a===b)return d.includes(wd);if(b>a)return d.includes(wd)&&minute>=a&&minute<b;return (d.includes(wd)&&minute>=a)||(d.includes(prev)&&minute<b);});
+}
+function render(){
+ if(!editing)return;
+ ['label','friendly_name','message_button','message_open','message_left_open'].forEach(k=>el(k).value=editing[k]||'');
+ ['enabled','alert_open_when_armed','alert_open_long'].forEach(k=>el(k).checked=!!editing[k]);
+ el('open_limit_minutes').value=editing.open_limit_minutes||5;el('arming_mode').value=editing.arming_mode||'auto';setVisible();
+ el('schedule').replaceChildren();(editing.schedule||[]).forEach(addScheduleRow);
+ const isDoor=editing.device_type==='contact';el('armedStatus').textContent=isDoor?('Beveiliging op dit moment: '+(activeNow(editing)?'AAN':'UIT')+' (voorbeeld, berekend in Nederlandse tijd)'):'';
+ status('');
+}
+function fillPicker(selected){
+ el('deviceSelect').replaceChildren();
+ devices.forEach((d,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=d.label+' · '+d.friendly_name+(d.enabled?'':' (uitgeschakeld)');el('deviceSelect').append(op);});
+ const idx=devices.findIndex(d=>d.id===selected);el('deviceSelect').value=String(idx<0?0:idx);editing=devices[idx<0?0:idx];render();
+}
+async function load(selected){
+ const{data,error}=await db.from('lcp_devices').select('*').order('label');
+ if(error)throw error;devices=data||[];
+ if(!devices.length){newDevice('button');return;}
+ fillPicker(selected);
+}
+function newDevice(type){
+ editing={device_type:type,id:null,label:type==='button'?'Nieuwe knop':'Nieuwe deursensor',friendly_name:'',
+ enabled:false,message_button:'LCP oproep (zigbee)',message_open:'🚨 LCP – deur ongeoorloofd geopend',message_left_open:'⚠️ LCP – deur staat langer dan 5 minuten open',
+ alert_open_when_armed:true,alert_open_long:true,open_limit_minutes:5,arming_mode:'auto',
+ schedule:type==='contact'?[{days:[1,2,3,4,5],start:'17:00',end:'08:00'},{days:[6,7],start:'00:00',end:'00:00'}]:[]};
+ el('deviceSelect').selectedIndex=-1;render();status('Nieuw apparaat: kies de Zigbee2MQTT-naam en sla op.');
+}
+function collect(){
+ if(!editing)throw Error('Kies eerst een apparaat.');
+ const x={label:el('label').value.trim(),friendly_name:el('friendly_name').value.trim(),device_type:editing.device_type,enabled:el('enabled').checked,
+ message_button:el('message_button').value.trim(),message_open:el('message_open').value.trim(),message_left_open:el('message_left_open').value.trim(),
+ alert_open_when_armed:el('alert_open_when_armed').checked,alert_open_long:el('alert_open_long').checked,
+ open_limit_minutes:Number(el('open_limit_minutes').value),arming_mode:el('arming_mode').value,schedule:editing.device_type==='contact'?getSchedule():[]};
+ if(!x.label||!x.friendly_name||x.friendly_name.includes('/'))throw Error('Vul een naam en geldige Zigbee2MQTT Friendly name zonder / in.');
+ if(!Number.isInteger(x.open_limit_minutes)||x.open_limit_minutes<1||x.open_limit_minutes>1440)throw Error('Aantal minuten moet tussen 1 en 1440 liggen.');
+ if([x.message_button,x.message_open,x.message_left_open].some(t=>!t||t.length>240))throw Error('Iedere meldtekst moet 1 tot 240 tekens bevatten.');
+ return x;
+}
+async function save(){
+ const button=el('save');button.disabled=true;
+ try{const x=collect();x.updated_at=new Date().toISOString();
+ let result;if(editing.id)result=await db.from('lcp_devices').update(x).eq('id',editing.id).select('id').single();
+ else result=await db.from('lcp_devices').insert(x).select('id').single();
+ if(result.error)throw result.error;
+ await load(result.data.id);status('Opgeslagen! De laptop neemt wijzigingen na maximaal ongeveer 15 seconden over.');
+ }catch(e){status('Opslaan mislukt: '+(e.message||e),true);}finally{button.disabled=false;}
+}
+async function removeDevice(){
+ if(!editing?.id||editing.friendly_name==='LCP_knop')return;
+ if(!confirm('Apparaat '+editing.label+' definitief verwijderen?'))return;
+ const {error}=await db.from('lcp_devices').delete().eq('id',editing.id);
+ if(error)return status('Verwijderen mislukt: '+error.message,true);
+ try{await load();status('Apparaat verwijderd.');}catch(e){status(e.message,true);}
+}
+async function start(){
+ try{
+ const {data:{user}}=await db.auth.getUser();
+ if(!user){el('notauthorized').replaceChildren();el('notauthorized').textContent='Log eerst in via de LCP-webapp. ';const a=document.createElement('a');a.href='./app.html';a.textContent='Naar inloggen';el('notauthorized').append(a);return;}
+ const {data,error}=await db.from('lcp_members').select('role').eq('user_id',user.id).single();
+ if(error||data?.role!=='admin'){el('notauthorized').textContent='Alleen LCP-beheerders mogen sensoren en meldingsteksten aanpassen.';return;}
+ el('notauthorized').style.display='none';el('form').style.display='block';
+ await load();
+ }catch(e){el('notauthorized').textContent='Instellingen laden mislukt: '+(e.message||e);}
+}
+el('deviceSelect').onchange=()=>{editing=devices[Number(el('deviceSelect').value)];render();};
+el('newButton').onclick=()=>newDevice('button');el('newDoor').onclick=()=>newDevice('contact');
+el('addWindow').onclick=()=>addScheduleRow();el('save').onclick=save;el('delete').onclick=removeDevice;
+el('arming_mode').onchange=()=>{if(editing){editing.arming_mode=el('arming_mode').value;el('armedStatus').textContent='Nieuwe beveiligingsstand opslaan om deze te activeren.';}};
+start();
+</script></body></html>
