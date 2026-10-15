@@ -12,12 +12,12 @@
 <label class="check" style="margin-top:14px"><input type="checkbox" id="enabled"> <span>Apparaat activeren voor meldingen</span></label>
 <div id="buttonFields"><label for="message_button">Tekst pushmelding na knopdruk</label><textarea id="message_button" maxlength="240" required></textarea><p class="sub">De pushmelding gebruikt deze tekst. De titel van de pushmelding blijft voorlopig 'LCP oproep'.</p></div>
 <div id="doorFields">
-<h3 class="subheading">Deurbeveiliging</h3><label for="arming_mode">Beveiliging</label><select id="arming_mode"><option value="auto">Automatisch volgens weekschema</option><option value="armed">Handmatig AAN (schema tijdelijk negeren)</option><option value="disarmed">Handmatig UIT (schema tijdelijk negeren)</option></select><p class="sub" id="armedStatus"></p>
+<h3 class="subheading">Deurbeveiliging</h3><label for="arming_mode">Beveiliging</label><select id="arming_mode"><option value="auto">Automatisch volgens weekschema</option><option value="armed">Handmatig AAN (tot terugzetten naar Auto)</option><option value="disarmed">Handmatig UIT (tot terugzetten naar Auto)</option></select><p class="sub" id="armedStatus"></p>
 <label class="check"><input type="checkbox" id="alert_open_when_armed"><span>Directe waarschuwing als de deur opengaat terwijl de beveiliging aanstaat</span></label>
 <label for="message_open">Tekst directe waarschuwing</label><textarea id="message_open" maxlength="240"></textarea>
 <div class="note">Een waarschuwing voor een deur die te lang openstaat werkt apart van de beveiligingstijden: ook overdag, tenzij je deze optie uitzet.</div>
 <label class="check" style="margin-top:12px"><input type="checkbox" id="alert_open_long"><span>Waarschuwing als deur te lang open blijft</span></label>
-<div class="twocol"><div><label for="open_limit_minutes">Aantal minuten open</label><input type="number" id="open_limit_minutes" min="1" max="1440" step="1"></div><div><label for="message_left_open">Tekst waarschuwing te lang open</label><textarea id="message_left_open" maxlength="240"></textarea></div></div>
+<div class="twocol"><div><label for="open_limit_minutes">Aantal minuten open</label><input type="number" id="open_limit_minutes" min="1" max="1440" step="1"></div><div><label for="message_left_open">Tekst waarschuwing te lang open</label><p class="sub">Gebruik {minuten} om automatisch de ingestelde tijd in te vullen.</p><textarea id="message_left_open" maxlength="240"></textarea></div></div>
 <h3 class="subheading">Automatisch weekschema</h3><p class="sub">Per tijdvak kies je dagen en begin/eindtijd. Als de eindtijd eerder is dan de begintijd, loopt de periode door tot de volgende dag. 00:00 tot 00:00 is een volledige dag. Tijdzone: Nederland.</p>
 <div id="schedule"></div><button class="alt" type="button" id="addWindow">+ Tijdvak toevoegen</button>
 </div>
@@ -79,7 +79,7 @@ async function load(selected){
 }
 function newDevice(type){
  editing={device_type:type,id:null,label:type==='button'?'Nieuwe knop':'Nieuwe deursensor',friendly_name:'',
- enabled:false,message_button:'LCP oproep (zigbee)',message_open:'🚨 LCP – deur ongeoorloofd geopend',message_left_open:'⚠️ LCP – deur staat langer dan 5 minuten open',
+ enabled:false,message_button:'LCP oproep (zigbee)',message_open:'🚨 LCP – deur ongeoorloofd geopend',message_left_open:'⚠️ LCP – deur staat al {minuten} minuten open',
  alert_open_when_armed:true,alert_open_long:true,open_limit_minutes:5,arming_mode:'auto',
  schedule:type==='contact'?[{days:[1,2,3,4,5],start:'17:00',end:'08:00'},{days:[6,7],start:'00:00',end:'00:00'}]:[]};
  el('deviceSelect').selectedIndex=-1;render();status('Nieuw apparaat: kies de Zigbee2MQTT-naam en sla op.');
