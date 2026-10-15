@@ -7,7 +7,7 @@ set "TASK=LCP - Achtergrondworker"
 set "TARGET=%ROOT%\lcp_worker.py"
 set "NEW=%ROOT%\lcp_worker_nieuw.py"
 set "BACKUP=%ROOT%\lcp_worker_voor_sensoren.py"
-set "URL=https://raw.githubusercontent.com/jkor95/LCP-knop/main/windows/lcp_worker_zigbee_v2.py"
+set "URL=https://raw.githubusercontent.com/jkor95/LCP-knop/726e73dceb861e616d60c85fe1d816b466528493/windows/lcp_worker_zigbee_v2.py"
 
 echo.
 echo  LCP - Veilige installatie van sensoruitbreiding
