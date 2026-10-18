@@ -135,7 +135,7 @@ class PushUITests(unittest.TestCase):
         self.page.wait_for_selector('#app', state='visible')
         self.page.click('#test')
         self.page.wait_for_function("document.querySelector('#pushstatus').textContent.startsWith('Testmelding aangeboden')")
-        self.assertFalse(self.page.evaluate("window.__lcpTest.events.some(e=>e.table==='lcp_calls')"))
+        self.assertFalse(self.page.evaluate("window.__lcpTest.events.some(e=>e.table==='lcp_calls' && e.operation!=='select')"))
         self.page.check('#soundenabled')
         self.page.fill('#soundvolume', '45')
         self.page.click('#soundactivate')
@@ -150,6 +150,41 @@ class PushUITests(unittest.TestCase):
         self.page.wait_for_selector('#app', state='visible')
         self.assertFalse(self.page.locator('#test').is_visible())
         self.assertTrue(self.page.locator('#permission').is_visible())
+        self.assertFalse(self.page.locator('#resetHistory').is_visible())
+
+    def test_history_reset_preserves_calls_and_new_calls_appear(self):
+        self.page.add_init_script("window.__calls=[{id:1,message:'Oude oproep',source:'zigbee',created_at:'2026-10-18T00:01:00Z'}]")
+        self.page.goto(self.base+'/app.html')
+        self.page.wait_for_selector('.call')
+        self.page.click('#resetHistory')
+        self.page.wait_for_function("document.querySelector('#historyStatus').textContent.includes('voor iedereen gereset')")
+        self.assertEqual(self.page.locator('.call').count(),0)
+        self.assertEqual(self.page.evaluate('window.__lcpTest.calls.length'),1)
+        self.page.evaluate("window.__lcpTest.calls.unshift({id:2,message:'Nieuwe oproep',source:'zigbee',created_at:new Date(Date.now()+1000).toISOString()})")
+        self.page.click('#refresh')
+        self.page.wait_for_selector('.call')
+        self.assertIn('Nieuwe oproep',self.page.text_content('#calls'))
+        self.assertNotIn('Oude oproep',self.page.text_content('#calls'))
+        self.assertFalse(self.page.evaluate("window.__lcpTest.events.some(e=>e.operation==='delete')"))
+
+    def test_open_app_refreshes_week_boundary_without_new_call(self):
+        self.page.clock.install()
+        self.page.add_init_script("window.__calls=[{id:1,message:'Vorige week',source:'zigbee',created_at:'2026-10-18T00:01:00Z'}]")
+        self.page.goto(self.base+'/app.html')
+        self.page.wait_for_selector('.call')
+        self.page.evaluate("window.__historySince='2026-10-25T00:00:00Z'")
+        self.page.clock.fast_forward(8100)
+        self.page.wait_for_function("document.querySelectorAll('.call').length===0")
+        self.assertIn('Geen oproepen',self.page.text_content('#calls'))
+
+    def test_reset_failure_preserves_visible_history(self):
+        self.page.add_init_script("window.__resetError=true;window.__calls=[{id:1,message:'Bestaande oproep',source:'zigbee',created_at:'2026-10-18T00:01:00Z'}]")
+        self.page.goto(self.base+'/app.html')
+        self.page.wait_for_selector('.call')
+        self.page.click('#resetHistory')
+        self.page.wait_for_function("document.querySelector('#historyStatus').textContent.includes('ingelogde beheerder')")
+        self.assertIn('Bestaande oproep',self.page.text_content('#calls'))
+        self.assertFalse(self.page.locator('#resetHistory').is_disabled())
 
     def test_real_serviceworker_persists_branding_and_serves_manifest(self):
         self.open_settings()

@@ -25,7 +25,7 @@ jobs:
       - name: Controleer migratie en toegangsregels
         env:
           LCP_PGLITE_MODULE: ${{ runner.temp }}/lcp-db/node_modules/@electric-sql/pglite/dist/index.js
-        run: node --test tests/push-database.test.mjs
+        run: node --test tests/push-database.test.mjs tests/call-history-database.test.mjs
   browser:
     runs-on: ubuntu-latest
     steps:

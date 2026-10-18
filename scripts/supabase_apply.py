@@ -62,6 +62,7 @@ def prepare(token):
     migration=Path('supabase/migrations/202610180001_push_settings.sql').read_text()
     request(token,'/database/query',{'query':migration})
     request(token,'/database/query',{'query':Path('supabase/migrations/202610180002_push_title_length.sql').read_text()})
+    request(token,'/database/query',{'query':Path('supabase/migrations/202610180003_call_history.sql').read_text()})
     root=Path(os.environ.get('RUNNER_TEMP','/tmp'))
     private_json(root/'lcp-deployment-private.json',bindings)
     print('Bestaande sleutels veilig hergebruikt en aanvullende instellingen transactioneel geactiveerd.')
@@ -74,9 +75,10 @@ VERIFY_SQL=Path('supabase/verify_push_settings.sql').read_text()
 
 def verify(token):
     checks=json.loads(request(token,'/database/query',{'query':VERIFY_SQL}))
+    history_checks=json.loads(request(token,'/database/query',{'query':Path('supabase/verify_call_history.sql').read_text()}))
     # Een succesvolle query inclusief ROLLBACK bewijst dat alle ingebouwde assertions slaagden.
     guard=json.loads(request(token,'/database/query',{'query':"select exists(select 1 from pg_db_role_setting s cross join lateral unnest(s.setconfig) c(value) where value like '%safeupdate%') as safeupdate_configured"}))
-    report={'project':PROJECT,'deployment':{'database_checks_passed':True,'safeupdate_configuration':guard,'database_response':checks}}
+    report={'project':PROJECT,'deployment':{'database_checks_passed':True,'history_checks':history_checks,'safeupdate_configuration':guard,'database_response':checks}}
     query="""select jsonb_build_object(
       'admin_count',(select count(*) from public.lcp_members where role='admin'),
       'settings',(select jsonb_build_object('title',title,'default_message',fallback_body,'app_name',app_name,'icon_url',icon_url) from public.lcp_push_preferences),
