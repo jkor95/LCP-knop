@@ -1,4 +1,4 @@
-import {pushModel,readPushSettings,applyBranding,sendPersonalTest,LcpError,pushSaveError} from './push-client.js';
+import {pushModel,readPushSettings,applyBranding,sendPersonalTest,LcpError,pushSaveError} from './push-client.js?v=20261018-3';
 
 // Behoud de bestaande apparaatinstellingen; deze module beheert alleen de extra secties.
 export function mountPushSettings(db, getDeviceMessage) {

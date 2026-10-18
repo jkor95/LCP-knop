@@ -43,8 +43,8 @@
 <section class="panel"><h2>Hoe werkt het?</h2><p><b>Knop:</b> een korte druk verstuurt de ingestelde tekst. <b>Deur:</b> een melding bij openen komt alleen wanneer de beveiliging actief is. De waarschuwing na de ingestelde open tijd werkt ook wanneer de beveiliging uitstaat.</p><p class="sub">Wijzigingen in meldteksten en beveiligingsstand worden door de bijgewerkte laptop-worker ongeveer iedere 15 seconden opgehaald. Zonder die worker blijven de huidige SONOFF-meldingen ongewijzigd.</p></section>
 </div></main>
 <script type="module">
-import {mountPushSettings} from './push-settings.js';
-import {dutchError} from './push-client.js';
+import {mountPushSettings} from './push-settings.js?v=20261018-3';
+import {dutchError} from './push-client.js?v=20261018-3';
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 const db=createClient('https://jrlcofhpxvnlqzirjdbd.supabase.co','sb_publishable_l-rXo1gmk9dGQ2QogsUexw_bAZfd84R');
 const el=id=>document.getElementById(id), days=['Ma','Di','Wo','Do','Vr','Za','Zo'];let devices=[],editing=null;
