@@ -1,0 +1,11 @@
+import {createClient} from 'npm:@supabase/supabase-js@2.57.0';
+import webpush from 'npm:web-push@3.6.7';
+import {createHandler} from './handler.mjs';
+const existingPublic='BFHyzDiGLWeWkzN2EIK6BZK4RnnUA8dknL2QCoIE95V3Ael0hNqTy88incr-d3yX6yHbVTxlIZPgdixYfUsqIIM';
+const publicKey=Deno.env.get('VAPID_PUBLIC_KEY');
+const privateKey=Deno.env.get('VAPID_PRIVATE_KEY');
+const subject=Deno.env.get('VAPID_SUBJECT');
+const ready=publicKey===existingPublic && !!privateKey && !!subject && /^(mailto:|https:\/\/)/.test(subject);
+if(ready)webpush.setVapidDetails(subject!,publicKey!,privateKey!);
+const service=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
+Deno.serve(createHandler({service,ready,sendPush:(subscription:unknown,payload:string)=>webpush.sendNotification(subscription,payload,{TTL:60,urgency:'normal',timeout:10000})}));

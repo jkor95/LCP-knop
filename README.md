@@ -1,5 +1,7 @@
 # LCP Knop - proefversie 1.0
 
+Voor de huidige instellingen voor titel, apparaatteksten, logo en persoonlijke testmeldingen: zie [Pushmeldingen beheren](docs/pushmeldingen.md). De bestaande Windows-/Zigbee-koppeling blijft behouden.
+
 Een losse LCP-oproep-app om zonder hardware te testen of een iPhone-melding aankomt en of een lopend Windows-programma kan doorwerken terwijl de laptop vergrendeld is.
 
 ## Eerste GitHub-upload

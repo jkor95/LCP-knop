@@ -1,6 +1,6 @@
 {
-  "name": "LCP Knop – Dalton VWO",
-  "short_name": "LCP Knop",
+  "name": "LCP",
+  "short_name": "LCP",
   "description": "Oproepsysteem Leerling Contact Punt Dalton VWO",
   "id": "./app.html",
   "start_url": "./app.html",
@@ -9,5 +9,19 @@
   "background_color": "#f2f6f4",
   "theme_color": "#164b3e",
   "lang": "nl",
-  "orientation": "portrait-primary"
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
