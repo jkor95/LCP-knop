@@ -1,4 +1,4 @@
-import {pushModel,readPushSettings,applyBranding,sendPersonalTest,LcpError} from './push-client.js';
+import {pushModel,readPushSettings,applyBranding,sendPersonalTest,LcpError,pushSaveError} from './push-client.js';
 
 // Behoud de bestaande apparaatinstellingen; deze module beheert alleen de extra secties.
 export function mountPushSettings(db, getDeviceMessage) {
@@ -39,7 +39,7 @@ export function mountPushSettings(db, getDeviceMessage) {
     pushModel.validate(draft);
    }
    const {data,error}=await db.rpc('lcp_save_push_settings',{p_settings:draft,p_expected_updated_at:saved.updated_at});
-   if(error)throw new LcpError(error.code==='40001'?'De instellingen zijn intussen gewijzigd. Herlaad de pagina voordat je opnieuw opslaat.':'Pushinstellingen opslaan is niet gelukt. Controleer je beheerdersrechten.');
+   if(error)throw pushSaveError(error);
    uploaded=null;pendingLogo=null;
    if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
    fill(pushModel.normalize(data));await applyBranding(saved);

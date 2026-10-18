@@ -14,6 +14,7 @@ export function createClient(){
   async rpc(name,args){
    state.events.push({rpc:name,args});
    if(window.__missingSettings)return {error:{code:'PGRST202'}};
+   if(name==='lcp_save_push_settings' && window.__saveError)return {error:window.__saveError};
    if(name==='lcp_save_push_settings')state.settings={...args.p_settings,updated_at:'2026-10-18T10:00:00Z'};
    return {data:state.settings};
   },

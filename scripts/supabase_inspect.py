@@ -29,6 +29,10 @@ select jsonb_build_object(
  'preferences',(select coalesce(jsonb_agg(to_jsonb(p)),'[]') from
   (select * from public.lcp_push_preferences limit 100) p),
  'preference_count',(select count(*) from public.lcp_push_preferences),
+ 'preference_constraints',(select coalesce(jsonb_agg(jsonb_build_object('name',conname,'definition',pg_get_constraintdef(oid))),'[]')
+  from pg_constraint where conrelid='public.lcp_push_preferences'::regclass),
+ 'preference_triggers',(select coalesce(jsonb_agg(jsonb_build_object('name',tgname,'definition',pg_get_triggerdef(oid))),'[]')
+  from pg_trigger where tgrelid='public.lcp_push_preferences'::regclass and not tgisinternal),
  'registrations',(select coalesce(jsonb_agg(to_jsonb(s)),'[]') from
    (select case when endpoint like 'https://web.push.apple.com/%' then 'Apple' else 'Ander platform' end as platform,
     count(*) as aantal,min(created_at) as oudste,max(created_at) as nieuwste

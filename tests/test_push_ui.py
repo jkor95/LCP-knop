@@ -73,6 +73,22 @@ class PushUITests(unittest.TestCase):
         self.page.click('#newButton')
         self.assertEqual(self.page.input_value('#message_button'), 'Bestaande standaardtekst')
 
+    def test_save_error_identifies_cause_and_preserves_draft(self):
+        self.open_settings()
+        self.page.fill('#pushTitle', 'Mijn nieuwe titel')
+        for code,expected in [('42501','beheerdersaccount'),('22023','afgekeurd'),('40001','intussen gewijzigd'),('PGRST301','sessie is verlopen'),('23514','serverfout')]:
+            self.page.evaluate("code=>{window.__saveError={code,message:'private server details'};}", code)
+            self.page.click('#savePush')
+            self.page.wait_for_function("code=>document.querySelector('#pushStatus').textContent.includes('foutcode '+code)", arg=code)
+            status=self.page.text_content('#pushStatus')
+            self.assertIn(expected,status)
+            self.assertNotIn('private server details',status)
+            self.assertEqual(self.page.input_value('#pushTitle'),'Mijn nieuwe titel')
+            self.assertFalse(self.page.locator('#savePush').is_disabled())
+        self.page.evaluate('window.__saveError=null')
+        self.page.click('#savePush')
+        self.page.wait_for_function("document.querySelector('#pushStatus').textContent.startsWith('Opgeslagen.')")
+
     def test_png_upload_reset_and_personal_test(self):
         self.open_settings()
         self.page.set_input_files('#pushLogo', {'name':'logo.png','mimeType':'image/png','buffer':(ROOT/'icon-192.png').read_bytes()})

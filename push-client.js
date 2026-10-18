@@ -1,5 +1,20 @@
 import './push-model.js';
 export class LcpError extends Error {}
+export function pushSaveError(error) {
+  const code=String(error?.code || '');
+  const messages={
+    '40001':'De instellingen zijn intussen gewijzigd. Herlaad de pagina voordat je opnieuw opslaat.',
+    '42501':'Opslaan is geweigerd. Log opnieuw in met je beheerdersaccount en probeer opnieuw.',
+    '22023':'De server heeft een titel, berichttekst, appnaam of PNG-logo afgekeurd. Controleer deze velden.',
+    PGRST301:'Je sessie is verlopen. Log opnieuw in en probeer opnieuw.',
+    PGRST302:'Je bent niet meer ingelogd. Log opnieuw in en probeer opnieuw.',
+    PGRST303:'Je sessie is niet geldig. Log opnieuw in en probeer opnieuw.',
+    PGRST202:'De opslagfunctie is nog niet beschikbaar bij de server. Probeer het over een minuut opnieuw.',
+  };
+  // Toon alleen een begrensde foutcode, nooit ruwe databaseberichten of verzoekgegevens.
+  const reference=/^[A-Z0-9]{5,10}$/.test(code)?` (foutcode ${code})`:'';
+  return new LcpError((messages[code] || 'Pushinstellingen zijn niet opgeslagen door een verbindings- of serverfout. Geef de foutcode door aan de beheerder.')+reference);
+}
 export const pushModel = globalThis.LcpPush;
 export async function readPushSettings(db) {
   const {data,error} = await db.rpc('lcp_get_push_settings');
