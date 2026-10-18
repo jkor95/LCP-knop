@@ -51,3 +51,11 @@ De migratie wijzigt geen `lcp_calls`, `lcp_devices`, `lcp_push_subscriptions`, W
 - `python -m unittest discover -s tests -p test_lcp_sensors.py -v`: de bestaande vijf tests voor knop, deur en beveiligingsschema.
 
 GitHub Actions voert deze controles automatisch uit. Er worden daarbij geen productiepushmeldingen verstuurd.
+
+## Alternatief als Codex het geheim niet kan opslaan
+
+Voeg het bestaande Supabase-toegangstoken uitsluitend toe als GitHub Actions-geheim `SUPABASE_ACCESS_TOKEN` bij deze repository (Settings → Secrets and variables → Actions). Zet de waarde nooit in code, een issue of chat. Dit omzeilt de vastlopende Codex-editor; er is geen nieuwe Supabase-sleutel nodig.
+
+De handmatig te starten workflow **LCP Supabase controleren** gebruikt het token alleen tegen de beheer-API van project `jrlcofhpxvnlqzirjdbd`. Hij leest het bestaande schema, policies, algemene pushvoorkeuren en relevante servercode. Hij wijzigt geen databasegegevens, verstuurt geen pushmeldingen en schrijft geen credentialwaarden naar de log. Secretmetadata wordt tot namen beperkt.
+
+Het rapport wordt met een openbare controlesleutel versleuteld en één dag als GitHub Actions-artifact bewaard. De privésleutel staat buiten de repository in de actieve Codex-werkruimte. De openbare sleutel in `.github/supabase-review-public.pem` is geen credential. Gaat de privésleutel verloren, maak dan een nieuw sleutelpaar en voer de controle opnieuw uit. Activering van de migratie en serverfunctie volgt pas na beoordeling van de bestaande installatie.

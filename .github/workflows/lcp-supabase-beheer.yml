@@ -1,0 +1,29 @@
+name: LCP Supabase controleren
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspectie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Installeer versleuteling
+        run: python -m pip install cryptography==46.0.3
+      - name: Controleer beveiliging van de beheerroute
+        run: python -m unittest discover -s tests -p test_supabase_inspect.py -v
+      - name: Controleer uitsluitend het bestaande LCP-project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python scripts/supabase_inspect.py
+      - name: Bewaar versleuteld controlerapport
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcp-supabase-inspectie-versleuteld
+          path: ${{ runner.temp }}/lcp-inspectie.enc.json
+          retention-days: 1
+          if-no-files-found: error
