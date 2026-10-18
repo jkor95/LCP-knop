@@ -19,14 +19,17 @@ async function fixture(){
  await db.exec(migration);return db;
 }
 async function as(db,role,uid=''){await db.exec(`reset role;set role ${role};set request.jwt.claim.sub='${uid}';`);}
-test('zondaggrens geldt in Nederland, inclusief zomer- en wintertijd',async()=>{
+test('maandaggrens geldt in Nederland, inclusief zomer- en wintertijd',async()=>{
  const db=await fixture();try{
   for(const [at,expected] of [
-   ['2026-10-17T21:59:59Z','2026-10-10T22:00:00.000Z'],
-   ['2026-10-17T22:00:00Z','2026-10-17T22:00:00.000Z'],
-   ['2026-10-25T02:30:00Z','2026-10-24T22:00:00.000Z'],
-   ['2026-11-01T12:00:00Z','2026-10-31T23:00:00.000Z'],
-   ['2026-03-29T10:00:00Z','2026-03-28T23:00:00.000Z'],
+   ['2026-10-18T21:59:59Z','2026-10-11T22:00:00.000Z'],
+   ['2026-10-18T22:00:00Z','2026-10-18T22:00:00.000Z'],
+   ['2026-10-25T02:30:00Z','2026-10-18T22:00:00.000Z'],
+   ['2026-10-25T22:59:59Z','2026-10-18T22:00:00.000Z'],
+   ['2026-10-25T23:00:00Z','2026-10-25T23:00:00.000Z'],
+   ['2026-11-01T12:00:00Z','2026-10-25T23:00:00.000Z'],
+   ['2026-03-29T10:00:00Z','2026-03-22T23:00:00.000Z'],
+   ['2026-03-29T22:00:00Z','2026-03-29T22:00:00.000Z'],
   ])assert.equal((await db.query('select public.lcp_history_week_start($1) as stamp',[at])).rows[0].stamp.toISOString(),expected);
  }finally{await db.close();}
 });

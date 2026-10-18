@@ -12,8 +12,7 @@ revoke all on public.lcp_call_history_state from anon,authenticated;
 
 create or replace function public.lcp_history_week_start(p_at timestamptz)
 returns timestamptz language sql immutable set search_path='' as $$
- select (date_trunc('day',p_at at time zone 'Europe/Amsterdam')
-  - extract(dow from p_at at time zone 'Europe/Amsterdam')::integer * interval '1 day')
+ select date_trunc('week',p_at at time zone 'Europe/Amsterdam')
   at time zone 'Europe/Amsterdam'
 $$;
 revoke all on function public.lcp_history_week_start(timestamptz) from public;

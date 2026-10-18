@@ -2,6 +2,11 @@ begin;
 do $$
 declare adm uuid; stamp timestamptz; state jsonb;
 begin
+ if public.lcp_history_week_start('2026-10-18T21:59:59Z')<>'2026-10-11T22:00:00Z'::timestamptz
+ or public.lcp_history_week_start('2026-10-18T22:00:00Z')<>'2026-10-18T22:00:00Z'::timestamptz
+ or public.lcp_history_week_start('2026-10-25T23:00:00Z')<>'2026-10-25T23:00:00Z'::timestamptz then
+  raise exception 'Weekgrens valt niet op maandag om 00.00 uur Nederlandse tijd.';
+ end if;
  select user_id into adm from public.lcp_members where role='admin' limit 1;
  if adm is null then raise exception 'Geen beheerder voor de geschiedeniscontrole.';end if;
  perform set_config('request.jwt.claim.sub',adm::text,true);
