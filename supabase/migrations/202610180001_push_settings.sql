@@ -72,9 +72,9 @@ begin
  if logo is null or (logo not in('./icon-192.png','./icon-512.png') and logo !~ '^https://jrlcofhpxvnlqzirjdbd[.]supabase[.]co/storage/v1/object/public/lcp-branding/([A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+[.]png$') then
   raise exception 'Ongeldig PNG-logo.' using errcode='22023';
  end if;
- select updated_at into current_stamp from public.lcp_push_preferences for update;
+ select updated_at into current_stamp from public.lcp_push_preferences where id=true for update;
  if current_stamp is distinct from p_expected_updated_at then raise exception 'De instellingen zijn intussen gewijzigd.' using errcode='40001'; end if;
- update public.lcp_push_preferences set title=btrim(p_settings->>'title'),fallback_body=btrim(p_settings->>'default_message'),app_name=btrim(p_settings->>'app_name'),icon_url=logo,updated_at=clock_timestamp();
+ update public.lcp_push_preferences set title=btrim(p_settings->>'title'),fallback_body=btrim(p_settings->>'default_message'),app_name=btrim(p_settings->>'app_name'),icon_url=logo,updated_at=clock_timestamp() where id=true;
  return public.lcp_get_push_settings();
 end $$;
 revoke all on function public.lcp_get_push_settings(),public.lcp_save_push_settings(jsonb,timestamptz) from public;

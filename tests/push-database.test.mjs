@@ -18,8 +18,8 @@ async function fixture(){
  grant usage on schema auth,public,storage to anon,authenticated,service_role;
  create table public.lcp_members(user_id uuid primary key,role text);
  insert into public.lcp_members values('${ADMIN}','admin'),('${MEMBER}','viewer');
- create table public.lcp_push_preferences(id int primary key default 1,title text constraint lcp_push_preferences_title_check check(length(btrim(title)) between 1 and 90),icon_url text,updated_at timestamptz default now());
- insert into public.lcp_push_preferences values(1,'Bestaande titel',null,'${originalDate}');
+ create table public.lcp_push_preferences(id boolean primary key default true check(id),title text constraint lcp_push_preferences_title_check check(length(btrim(title)) between 1 and 90),icon_url text,updated_at timestamptz default now());
+ insert into public.lcp_push_preferences values(true,'Bestaande titel',null,'${originalDate}');
  alter table public.lcp_push_preferences enable row level security;
  create policy old_permissive on public.lcp_push_preferences for all to anon,authenticated using(true) with check(true);
  grant all on public.lcp_push_preferences to anon,authenticated,service_role;
@@ -55,7 +55,7 @@ test('migratie hergebruikt de voorkeurenrij en bestaande bucket en is herhaalbaa
  const db=await fixture();try{
   await db.exec(migration);
   const {rows:[row]}=await db.query('select * from public.lcp_push_preferences');
-  assert.equal(row.id,1);assert.equal(row.title,'Bestaande titel');assert.equal(row.icon_url,null);
+  assert.equal(row.id,true);assert.equal(row.title,'Bestaande titel');assert.equal(row.icon_url,null);
   assert.equal(row.fallback_body,'Er is op de oproepknop gedrukt.');
   assert.equal((await db.query('select count(*)::int as n from storage.buckets')).rows[0].n,1);
  }finally{await db.close();}
@@ -82,7 +82,7 @@ test('anonieme aanvragen zien geen instellingen en kunnen niet schrijven',async(
   await as(db,'anon');
   assert.equal((await db.query('select count(*)::int as n from public.lcp_push_preferences')).rows[0].n,0);
   await assert.rejects(db.query('select public.lcp_get_push_settings()'),{code:'42501'});
-  await assert.rejects(db.exec("insert into public.lcp_push_preferences(id,title) values(2,'Verboden')"),{code:'42501'});
+  await assert.rejects(db.exec("insert into public.lcp_push_preferences(id,title) values(false,'Verboden')"),{code:'42501'});
   await assert.rejects(db.exec("insert into storage.objects(bucket_id,name,metadata) values('lcp-branding','hack.png','{\"mimetype\":\"image/png\"}')"),{code:'42501'});
  }finally{await db.close();}
 });
