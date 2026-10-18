@@ -66,24 +66,17 @@ def prepare(token):
     private_json(root/'lcp-deployment-private.json',bindings)
     print('Bestaande sleutels veilig hergebruikt en aanvullende instellingen transactioneel geactiveerd.')
 
-VERIFY_SQL="""load 'safeupdate';
-begin;
-do $$ begin
- begin
-  update public.lcp_push_preferences set title=title;
-  raise exception 'De bescherming tegen updates zonder WHERE is niet actief.';
- exception when cardinality_violation then null;
- end;
-end $$;
-rollback;
-"""+Path('supabase/verify_push_settings.sql').read_text()
+# De beheer-API mag geen extra bibliotheken laden. De HTTP-sessie van PostgREST
+# heeft eigen preload-instellingen; lees die begrensd uit zonder ze te wijzigen.
+VERIFY_SQL=Path('supabase/verify_push_settings.sql').read_text()
 # De beheer-API kan de laatste resultset selecteren; bij fouten breekt de actie af.
 # De testwijziging wordt altijd teruggedraaid en maakt geen oproepen aan.
 
 def verify(token):
     checks=json.loads(request(token,'/database/query',{'query':VERIFY_SQL}))
     # Een succesvolle query inclusief ROLLBACK bewijst dat alle ingebouwde assertions slaagden.
-    report={'project':PROJECT,'deployment':{'database_checks_passed':True,'safeupdate_verified':True,'database_response':checks}}
+    guard=json.loads(request(token,'/database/query',{'query':"select exists(select 1 from pg_db_role_setting s cross join lateral unnest(s.setconfig) c(value) where value like '%safeupdate%') as safeupdate_configured"}))
+    report={'project':PROJECT,'deployment':{'database_checks_passed':True,'safeupdate_configuration':guard,'database_response':checks}}
     query="""select jsonb_build_object(
       'admin_count',(select count(*) from public.lcp_members where role='admin'),
       'settings',(select jsonb_build_object('title',title,'default_message',fallback_body,'app_name',app_name,'icon_url',icon_url) from public.lcp_push_preferences),
