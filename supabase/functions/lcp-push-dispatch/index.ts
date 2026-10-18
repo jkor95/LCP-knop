@@ -1,0 +1,10 @@
+import webpush from 'npm:web-push@3.6.7';
+import {createClient} from 'npm:@supabase/supabase-js@2.57.0';
+import {createDispatchHandler} from './handler.mjs';
+const subject=Deno.env.get('VAPID_SUBJECT');
+const publicKey=Deno.env.get('VAPID_PUBLIC_KEY');
+const privateKey=Deno.env.get('VAPID_PRIVATE_KEY');
+if(!subject || !publicKey || !privateKey)throw Error('De bestaande pushsleutels zijn nog niet gekoppeld.');
+webpush.setVapidDetails(subject,publicKey,privateKey);
+const service=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
+Deno.serve(createDispatchHandler({service,webhookToken:Deno.env.get('LCP_PUSH_WEBHOOK_TOKEN'),sendPush:(subscription:unknown,payload:string)=>webpush.sendNotification(subscription,payload,{TTL:120,urgency:'high',timeout:10000})}));

@@ -71,4 +71,36 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(json.loads(AESGCM(key).decrypt(nonce,ciphertext,aad)),report)
         with self.assertRaises(InvalidTag):AESGCM(key).decrypt(nonce,ciphertext[:-1]+bytes([ciphertext[-1]^1]),aad)
 
+
+class DeploymentSafetyTests(unittest.TestCase):
+    def test_unreviewed_server_source_never_produces_bindings(self):
+        import supabase_apply
+        with self.assertRaisesRegex(inspect.InspectError,'veranderd'):
+            supabase_apply.legacy_bindings('webpush.setVapidDetails("a","b","c");')
+
+    def test_entry_source_uses_the_original_sourcemap(self):
+        import supabase_apply
+        source='import webpush from "npm:web-push"; Deno.serve(handler);'
+        raw=b'ESZIP'+json.dumps({'version':3,'sources':['source/index.ts'],'sourcesContent':[source]},separators=(',',':')).encode()+b'\x00'
+        self.assertEqual(supabase_apply.entry_source(raw),source)
+
+
+    def test_repeated_activation_reuses_existing_bindings_without_reading_keys(self):
+        import supabase_apply
+        import tempfile
+        from contextlib import redirect_stdout
+        source=Path('supabase/functions/lcp-push-dispatch/index.ts').read_text()
+        raw=json.dumps({'version':3,'sources':['source/index.ts'],'sourcesContent':[source]},separators=(',',':')).encode()
+        calls=[]
+        def request(token,path,payload=None):
+            calls.append((path,payload))
+            if path.endswith('/body'):return raw
+            if path=='/secrets':return json.dumps([{'name':name} for name in ['VAPID_SUBJECT','VAPID_PUBLIC_KEY','VAPID_PRIVATE_KEY','LCP_PUSH_WEBHOOK_TOKEN']]).encode()
+            if path=='/database/query':return b'[]'
+            raise AssertionError(path)
+        with tempfile.TemporaryDirectory() as directory, patch.dict('os.environ',{'RUNNER_TEMP':directory}), patch.object(supabase_apply,'request',request), redirect_stdout(io.StringIO()):
+            supabase_apply.prepare('dummy')
+            self.assertIsNone(json.loads((Path(directory)/'lcp-deployment-private.json').read_text()))
+        self.assertFalse(any(path=='/secrets' and payload is not None for path,payload in calls))
+
 if __name__=='__main__':unittest.main()

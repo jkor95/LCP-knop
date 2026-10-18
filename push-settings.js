@@ -68,6 +68,7 @@ export function mountPushSettings(db, getDeviceMessage) {
     ctx.drawImage(bitmap,(512-w)/2,(512-h)/2,w,h);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!blob)throw new LcpError('De afbeelding kon niet worden verwerkt.');
+    if(blob.size>1024*1024)throw new LcpError('Het verwerkte logo is te groot. Kies een eenvoudiger PNG-logo.');
     pendingLogo=blob;if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(blob);
    } finally {bitmap.close();}
    el('logoFileName').textContent=file.name;preview();report('Voorvertoning gereed. Klik op Pushinstellingen opslaan om dit logo te gebruiken.');

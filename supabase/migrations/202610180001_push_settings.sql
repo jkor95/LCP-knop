@@ -4,10 +4,11 @@ begin;
 create table if not exists public.lcp_push_preferences (
  id boolean primary key default true check(id),
  title text not null default 'LCP – Oproep',
+ fallback_body text not null default 'Er is op de oproepknop gedrukt.',
  icon_url text,
  updated_at timestamptz not null default now()
 );
-alter table public.lcp_push_preferences add column if not exists default_message text not null default 'Er is op de oproepknop gedrukt.';
+alter table public.lcp_push_preferences add column if not exists fallback_body text not null default 'Er is op de oproepknop gedrukt.';
 alter table public.lcp_push_preferences add column if not exists app_name text not null default 'LCP';
 -- De bestaande installatie gebruikt één algemene voorkeurenrij. Bij een ander
 -- model moet eerst de bestaande servercode worden onderzocht, niet geconverteerd.
@@ -21,6 +22,8 @@ begin
   insert into public.lcp_push_preferences(title) values('LCP – Oproep');
  end if;
 end $$;
+update public.lcp_push_preferences set title='LCP – Oproep',fallback_body='Er is op de oproepknop gedrukt.',updated_at=clock_timestamp()
+where title='LCP oproep' and fallback_body='Er is een nieuwe oproep bij het LCP.';
 create unique index if not exists lcp_push_preferences_singleton_v2 on public.lcp_push_preferences((true));
 
 create or replace function public.lcp_push_is_member() returns boolean
@@ -51,7 +54,7 @@ language plpgsql stable security definer set search_path='' as $$
 declare result jsonb;
 begin
  if not public.lcp_push_is_member() then raise exception 'Geen toegang.' using errcode='42501'; end if;
- select jsonb_build_object('title',title,'icon_url',icon_url,'default_message',default_message,'app_name',app_name,'updated_at',updated_at) into result from public.lcp_push_preferences;
+ select jsonb_build_object('title',title,'icon_url',icon_url,'default_message',fallback_body,'app_name',app_name,'updated_at',updated_at) into result from public.lcp_push_preferences;
  return result;
 end $$;
 create or replace function public.lcp_save_push_settings(p_settings jsonb,p_expected_updated_at timestamptz) returns jsonb
@@ -71,7 +74,7 @@ begin
  end if;
  select updated_at into current_stamp from public.lcp_push_preferences for update;
  if current_stamp is distinct from p_expected_updated_at then raise exception 'De instellingen zijn intussen gewijzigd.' using errcode='40001'; end if;
- update public.lcp_push_preferences set title=btrim(p_settings->>'title'),default_message=btrim(p_settings->>'default_message'),app_name=btrim(p_settings->>'app_name'),icon_url=logo,updated_at=clock_timestamp();
+ update public.lcp_push_preferences set title=btrim(p_settings->>'title'),fallback_body=btrim(p_settings->>'default_message'),app_name=btrim(p_settings->>'app_name'),icon_url=logo,updated_at=clock_timestamp();
  return public.lcp_get_push_settings();
 end $$;
 revoke all on function public.lcp_get_push_settings(),public.lcp_save_push_settings(jsonb,timestamptz) from public;

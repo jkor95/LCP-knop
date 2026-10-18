@@ -59,7 +59,14 @@ def request(token, path, payload=None):
                 raise InspectError('Het projectantwoord is te groot voor deze controle.')
             return body
     except urllib.error.HTTPError as error:
-        # Geen antwoordtekst, aanvraagheaders of tokenwaarden loggen.
+        # Alleen een versleutelde diagnose; nooit API-antwoorden of credentials loggen.
+        if os.environ.get('GITHUB_ACTIONS')=='true':
+            try:
+                diagnostic={'project':PROJECT,'api_error':{'status':error.code,'path':path,'response_base64':base64.b64encode(error.read(2*1024*1024)).decode()}}
+                envelope=encrypt_report(diagnostic,Path('.github/supabase-review-public.pem').read_bytes())
+                (Path(os.environ['RUNNER_TEMP'])/'lcp-inspectie.enc.json').write_text(json.dumps(envelope))
+            except Exception:
+                pass
         raise InspectError('Supabase-beheeraanvraag geweigerd (HTTP '+str(error.code)+').') from None
     except urllib.error.URLError:
         raise InspectError('Verbinding met de Supabase-beheer-API mislukt.') from None

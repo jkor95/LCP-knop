@@ -40,7 +40,7 @@ test('migratie hergebruikt de voorkeurenrij en bestaande bucket en is herhaalbaa
   await db.exec(migration);
   const {rows:[row]}=await db.query('select * from public.lcp_push_preferences');
   assert.equal(row.id,1);assert.equal(row.title,'Bestaande titel');assert.equal(row.icon_url,null);
-  assert.equal(row.default_message,'Er is op de oproepknop gedrukt.');
+  assert.equal(row.fallback_body,'Er is op de oproepknop gedrukt.');
   assert.equal((await db.query('select count(*)::int as n from storage.buckets')).rows[0].n,1);
  }finally{await db.close();}
 });
@@ -92,5 +92,13 @@ test('logo-validatie zit ook in de database en testlimiet is alleen voor de serv
   assert.equal((await db.query('select public.lcp_claim_push_test($1) as ok',[ADMIN])).rows[0].ok,true);
   assert.equal((await db.query('select public.lcp_claim_push_test($1) as ok',[ADMIN])).rows[0].ok,false);
   assert.equal((await db.query('select title from public.lcp_push_preferences')).rows[0].title,'Bestaande titel');
+ }finally{await db.close();}
+});
+test('productiecontrole doorloopt echte rollen en draait de tijdelijke wijziging terug',async()=>{
+ const db=await fixture();try{
+  const before=(await db.query('select * from public.lcp_push_preferences')).rows;
+  const sql=await readFile(new URL('../supabase/verify_push_settings.sql',import.meta.url),'utf8');
+  await db.exec(sql);
+  assert.deepEqual((await db.query('select * from public.lcp_push_preferences')).rows,before);
  }finally{await db.close();}
 });

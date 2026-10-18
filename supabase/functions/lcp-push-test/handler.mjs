@@ -1,3 +1,5 @@
+import {safePushEndpoint} from '../_shared/push-utils.mjs';
+export {safePushEndpoint};
 const ORIGIN='https://jkor95.github.io';
 function settings(value) {
  if(!value || typeof value!=='object')throw Error('INVALID_INPUT');
@@ -5,13 +7,6 @@ function settings(value) {
  const icon=value.icon_url;
  if(typeof icon!=='string' || (!['./icon-192.png','./icon-512.png'].includes(icon) && !/^https:\/\/jrlcofhpxvnlqzirjdbd\.supabase\.co\/storage\/v1\/object\/public\/lcp-branding\/([A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.png$/.test(icon)))throw Error('INVALID_INPUT');
  return {title:value.title.trim(),default_message:value.default_message.trim(),app_name:value.app_name.trim(),icon_url:icon};
-}
-export function safePushEndpoint(endpoint) {
- try {
-  const u=new URL(endpoint);
-  return u.protocol==='https:' && !u.username && !u.password && (!u.port || u.port==='443') &&
-   (u.hostname==='web.push.apple.com' || u.hostname.endsWith('.push.apple.com') || u.hostname==='fcm.googleapis.com' || u.hostname==='updates.push.services.mozilla.com' || u.hostname.endsWith('.notify.windows.com'));
- } catch{return false;}
 }
 export function createHandler({service,sendPush,ready=true}) {
  return async request=>{

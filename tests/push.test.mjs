@@ -87,3 +87,29 @@ test('SSRF-bestemmingen en te grote aanvragen worden geweigerd',async()=>{
  const f=fixture({subs:[{endpoint:'https://127.0.0.1/x'}]});assert.equal((await f.request()).status,502);assert.equal(f.sent.length,0);
  const huge=fixture();assert.equal((await huge.request({message:'x'.repeat(17000)})).status,413);
 });
+
+const {createDispatchHandler}=await import('../supabase/functions/lcp-push-dispatch/handler.mjs');
+function dispatchFixture({preferenceError=false}={}){
+ const queries=[],sent=[];
+ const service={from(table){const q={table};queries.push(q);return {
+  select(){return this;},eq(key,value){q.filter=[key,value];return this;},
+  async maybeSingle(){return table==='lcp_calls'?{data:{id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',message:'Eigen deurtekst'}}:{data:{title:'LCP – Achterdeur',fallback_body:'Standaard',app_name:'LCP',icon_url:logo},error:preferenceError?Error('not available'):null};},
+  then(resolve){return Promise.resolve({data:[{user_id:'allowed-member'}]}).then(resolve);},
+  async in(key,values){q.filter=[key,values];return {data:[{id:'subscription',endpoint:'https://web.push.apple.com/current',p256dh:'key',auth_secret:'secret'}]};},
+ };}};
+ const handle=createDispatchHandler({service,webhookToken:'existing-webhook',sendPush:async(sub,payload)=>sent.push(JSON.parse(payload))});
+ const request=token=>handle(new Request('https://function.example',{method:'POST',headers:{'x-lcp-webhook-token':token},body:JSON.stringify({id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'})}));
+ return {request,queries,sent};
+}
+test('bestaande webhook levert apparaattekst met actuele voorkeuren aan bevoegde leden',async()=>{
+ const f=dispatchFixture();assert.equal((await f.request('existing-webhook')).status,200);
+ assert.equal(f.sent[0].message,'Eigen deurtekst');assert.equal(f.sent[0].lcp_preferences.title,'LCP – Achterdeur');
+ assert.deepEqual(f.queries.find(q=>q.table==='lcp_push_subscriptions').filter,['user_id',['allowed-member']]);
+});
+test('verkeerd webhookgeheim haalt geen oproepen of registraties op',async()=>{
+ const f=dispatchFixture();assert.equal((await f.request('wrong')).status,401);assert.equal(f.queries.length,0);assert.equal(f.sent.length,0);
+});
+test('tijdelijk ontbrekende voorkeuren onderbreken bestaande knopoproepen niet',async()=>{
+ const f=dispatchFixture({preferenceError:true});assert.equal((await f.request('existing-webhook')).status,200);
+ assert.equal(f.sent[0].message,'Eigen deurtekst');assert.equal(f.sent[0].lcp_preferences.title,'LCP – Oproep');
+});

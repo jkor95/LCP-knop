@@ -3,3 +3,6 @@ project_id = "jrlcofhpxvnlqzirjdbd"
 [functions.lcp-push-test]
 # JWT-validatie gebeurt expliciet via auth.getUser, ook voor nieuwe JWT-sleutels.
 verify_jwt = false
+
+[functions.lcp-push-dispatch]
+verify_jwt = false
