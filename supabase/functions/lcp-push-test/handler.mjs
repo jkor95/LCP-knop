@@ -3,7 +3,7 @@ function settings(value) {
  if(!value || typeof value!=='object')throw Error('INVALID_INPUT');
  for(const [key,max] of [['title',100],['default_message',240],['app_name',24]])if(typeof value[key]!=='string' || !value[key].trim() || [...value[key].trim()].length>max)throw Error('INVALID_INPUT');
  const icon=value.icon_url;
- if(typeof icon!=='string' || (!['./icon-192.png','./icon-512.png'].includes(icon) && !/^https:\/\/jrlcofhpxvnlqzirjdbd\.supabase\.co\/storage\/v1\/object\/public\/lcp-branding\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.png$/.test(icon)))throw Error('INVALID_INPUT');
+ if(typeof icon!=='string' || (!['./icon-192.png','./icon-512.png'].includes(icon) && !/^https:\/\/jrlcofhpxvnlqzirjdbd\.supabase\.co\/storage\/v1\/object\/public\/lcp-branding\/([A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.png$/.test(icon)))throw Error('INVALID_INPUT');
  return {title:value.title.trim(),default_message:value.default_message.trim(),app_name:value.app_name.trim(),icon_url:icon};
 }
 export function safePushEndpoint(endpoint) {

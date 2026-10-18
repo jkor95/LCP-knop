@@ -55,6 +55,9 @@ test('alleen beheerder kan opslaan; bestaande datum beschermt tegen overschrijve
   assert.equal((await db.query('select count(*)::int as n from public.lcp_push_preferences')).rows[0].n,1);
   await as(db,'authenticated',ADMIN);
   const row=(await save(db)).rows[0].settings;assert.equal(row.title,input.title);
+  const legacy={...input,icon_url:'https://jrlcofhpxvnlqzirjdbd.supabase.co/storage/v1/object/public/lcp-branding/logo.png'};
+  const changed=await db.query('select public.lcp_save_push_settings($1::jsonb,$2::timestamptz) as settings',[JSON.stringify(legacy),row.updated_at]);
+  assert.equal(changed.rows[0].settings.icon_url,legacy.icon_url);
   await assert.rejects(save(db),{code:'40001'});
  }finally{await db.close();}
 });

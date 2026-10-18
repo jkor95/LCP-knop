@@ -66,7 +66,7 @@ begin
   raise exception 'Vul een geldige titel, standaardtekst en appnaam in.' using errcode='22023';
  end if;
  logo:=p_settings->>'icon_url';
- if logo is null or (logo not in('./icon-192.png','./icon-512.png') and logo !~ '^https://jrlcofhpxvnlqzirjdbd[.]supabase[.]co/storage/v1/object/public/lcp-branding/[0-9a-f-]{36}/[0-9a-f-]{36}[.]png$') then
+ if logo is null or (logo not in('./icon-192.png','./icon-512.png') and logo !~ '^https://jrlcofhpxvnlqzirjdbd[.]supabase[.]co/storage/v1/object/public/lcp-branding/([A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+[.]png$') then
   raise exception 'Ongeldig PNG-logo.' using errcode='22023';
  end if;
  select updated_at into current_stamp from public.lcp_push_preferences for update;

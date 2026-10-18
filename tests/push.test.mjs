@@ -56,6 +56,10 @@ test('persoonlijke test filtert uitsluitend op de geverifieerde gebruiker',async
  assert.equal(f.sent[0].payload.message,'Persoonlijke test');assert.equal(f.sent[0].payload.lcp_preferences.title,defaults.title);
  assert.ok(f.queries.every(q=>q.table!=='lcp_calls'));assert.equal(f.sent.length,1);
 });
+test('bestaande PNG-logo’s in dezelfde bucket blijven bruikbaar',async()=>{
+ const f=fixture();const response=await f.request({settings:{...defaults,icon_url:'https://jrlcofhpxvnlqzirjdbd.supabase.co/storage/v1/object/public/lcp-branding/logo.png'},message:'Persoonlijke test'});
+ assert.equal(response.status,200);assert.ok(f.sent[0].payload.lcp_preferences.icon_url.endsWith('/logo.png'));
+});
 test('een aanvrager kan geen andere ontvanger of algemene oproep kiezen',async()=>{
  const f=fixture();const response=await f.request({settings:defaults,message:'Test',user_id:'other',broadcast:true});
  assert.equal(response.status,400);assert.equal(f.sent.length,0);
