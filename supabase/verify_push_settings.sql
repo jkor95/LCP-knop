@@ -13,6 +13,12 @@ begin
  if changed->>'title'<>'LCP – tijdelijke toegangscontrole' then raise exception 'Opslaan als beheerder werkt niet.';end if;
  reset role;
  insert into lcp_verify_result values('admin_can_read_and_save',true);
+ perform set_config('request.jwt.claim.sub',adm::text,true);
+ set local role authenticated;
+ changed:=public.lcp_save_push_settings(changed || jsonb_build_object('title',repeat('T',100)),(changed->>'updated_at')::timestamptz);
+ if char_length(changed->>'title')<>100 then raise exception 'Titel met 100 tekens kan niet worden opgeslagen.';end if;
+ reset role;
+ insert into lcp_verify_result values('admin_can_save_100_character_title',true);
  select user_id into member_id from public.lcp_members where role<>'admin' limit 1;
  if member_id is not null then
   perform set_config('request.jwt.claim.sub',member_id::text,true);

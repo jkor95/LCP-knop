@@ -61,6 +61,7 @@ def prepare(token):
         request(token,'/secrets',[{'name':name,'value':value} for name,value in bindings.items()])
     migration=Path('supabase/migrations/202610180001_push_settings.sql').read_text()
     request(token,'/database/query',{'query':migration})
+    request(token,'/database/query',{'query':Path('supabase/migrations/202610180002_push_title_length.sql').read_text()})
     root=Path(os.environ.get('RUNNER_TEMP','/tmp'))
     private_json(root/'lcp-deployment-private.json',bindings)
     print('Bestaande sleutels veilig hergebruikt en aanvullende instellingen transactioneel geactiveerd.')

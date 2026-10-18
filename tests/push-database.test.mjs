@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const {PGlite}=await import(process.env.LCP_PGLITE_MODULE || '@electric-sql/pglite');
 const migration=await readFile(new URL('../supabase/migrations/202610180001_push_settings.sql',import.meta.url),'utf8');
+const titleMigration=await readFile(new URL('../supabase/migrations/202610180002_push_title_length.sql',import.meta.url),'utf8');
 const ADMIN='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',MEMBER='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const originalDate='2026-10-01T10:00:00Z';
 const input={title:'LCP – Receptie',default_message:'Er wacht iemand.',app_name:'LCP',icon_url:'./icon-512.png'};
@@ -17,7 +18,7 @@ async function fixture(){
  grant usage on schema auth,public,storage to anon,authenticated,service_role;
  create table public.lcp_members(user_id uuid primary key,role text);
  insert into public.lcp_members values('${ADMIN}','admin'),('${MEMBER}','viewer');
- create table public.lcp_push_preferences(id int primary key default 1,title text,icon_url text,updated_at timestamptz default now());
+ create table public.lcp_push_preferences(id int primary key default 1,title text constraint lcp_push_preferences_title_check check(length(btrim(title)) between 1 and 90),icon_url text,updated_at timestamptz default now());
  insert into public.lcp_push_preferences values(1,'Bestaande titel',null,'${originalDate}');
  alter table public.lcp_push_preferences enable row level security;
  create policy old_permissive on public.lcp_push_preferences for all to anon,authenticated using(true) with check(true);
@@ -30,10 +31,25 @@ async function fixture(){
  grant all on storage.objects to anon,authenticated,service_role;
  `);
  await db.exec(migration);
+ await db.exec(titleMigration);
  return db;
 }
 async function as(db,role,uid='') {await db.exec(`reset role;set role ${role};set request.jwt.claim.sub='${uid}';`);}
 async function save(db,stamp=originalDate){return db.query('select public.lcp_save_push_settings($1::jsonb,$2::timestamptz) as settings',[JSON.stringify(input),stamp]);}
+
+test('bestaande titelgrens wordt verruimd: 91 en 100 tekens werken, 101 wordt geweigerd',async()=>{
+ const db=await fixture();try{
+  await db.exec(titleMigration);
+  await as(db,'authenticated',ADMIN);
+  let stamp=originalDate;
+  for(const length of [91,100]){
+   const result=await db.query('select public.lcp_save_push_settings($1::jsonb,$2::timestamptz) as settings',[JSON.stringify({...input,title:'T'.repeat(length)}),stamp]);
+   assert.equal(result.rows[0].settings.title.length,length);
+   stamp=result.rows[0].settings.updated_at;
+  }
+  await assert.rejects(db.query('select public.lcp_save_push_settings($1::jsonb,$2::timestamptz)',[JSON.stringify({...input,title:'T'.repeat(101)}),stamp]),{code:'22023'});
+ }finally{await db.close();}
+});
 
 test('migratie hergebruikt de voorkeurenrij en bestaande bucket en is herhaalbaar',async()=>{
  const db=await fixture();try{
