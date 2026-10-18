@@ -1,6 +1,11 @@
 name: LCP Supabase controleren
 on:
   workflow_dispatch:
+    inputs:
+      broncode:
+        description: 'Ook serverbroncode meenemen (groter rapport)'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -22,6 +27,7 @@ jobs:
       - name: Controleer uitsluitend het bestaande LCP-project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          INCLUDE_SOURCE: ${{ inputs.broncode }}
         run: python scripts/supabase_inspect.py
       - name: Maak het versleutelde rapport bereikbaar via GitHub
         env:

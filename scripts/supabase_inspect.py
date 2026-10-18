@@ -9,6 +9,8 @@ import re
 import sys
 import urllib.error
 import urllib.request
+import urllib.parse
+from datetime import datetime,timedelta,timezone
 
 PROJECT = 'jrlcofhpxvnlqzirjdbd'
 API = 'https://api.supabase.com/v1/projects/' + PROJECT
@@ -27,6 +29,11 @@ select jsonb_build_object(
  'preferences',(select coalesce(jsonb_agg(to_jsonb(p)),'[]') from
   (select * from public.lcp_push_preferences limit 100) p),
  'preference_count',(select count(*) from public.lcp_push_preferences),
+ 'registrations',(select coalesce(jsonb_agg(to_jsonb(s)),'[]') from
+   (select case when endpoint like 'https://web.push.apple.com/%' then 'Apple' else 'Ander platform' end as platform,
+    count(*) as aantal,min(created_at) as oudste,max(created_at) as nieuwste
+    from public.lcp_push_subscriptions group by 1) s),
+ 'member_roles',(select coalesce(jsonb_agg(to_jsonb(m)),'[]') from (select role,count(*) as aantal from public.lcp_members group by role) m),
  'buckets',(select coalesce(jsonb_agg(to_jsonb(b)),'[]') from
   (select id,name,public,file_size_limit,allowed_mime_types from storage.buckets where id='lcp-branding') b),
  'triggers',(select coalesce(jsonb_agg(jsonb_build_object('name',tgname,'definition',pg_get_triggerdef(oid))),'[]')
@@ -71,7 +78,7 @@ def request(token, path, payload=None):
     except urllib.error.URLError:
         raise InspectError('Verbinding met de Supabase-beheer-API mislukt.') from None
 
-def collect(token):
+def collect(token,include_sources=True):
     report = {'project':PROJECT}
     report['database'] = json.loads(request(token,'/database/query',{'query':AUDIT_SQL}))
     functions = json.loads(request(token,'/functions'))
@@ -80,7 +87,7 @@ def collect(token):
     report['functions'] = functions
     report['secret_names'] = [item['name'] for item in json.loads(request(token,'/secrets'))]
     report['sources'] = {}
-    for function in functions:
+    for function in (functions if include_sources else []):
         slug = function.get('slug','')
         if not re.fullmatch(r'[A-Za-z0-9_-]+',slug):
             raise InspectError('Onverwachte naam van een serverfunctie.')
@@ -92,6 +99,11 @@ def collect(token):
         except InspectError as error:
             # Overige controles blijven bruikbaar als de API geen broncode levert.
             report['sources'][slug] = {'error':str(error)}
+    if not include_sources:
+        end=datetime.now(timezone.utc);start=end-timedelta(minutes=20)
+        params=urllib.parse.urlencode({'sql':'select timestamp,event_message from function_edge_logs order by timestamp desc limit 30','iso_timestamp_start':start.isoformat(),'iso_timestamp_end':end.isoformat()})
+        try:report['delivery_logs']=json.loads(request(token,'/analytics/endpoints/logs.all?'+params))
+        except InspectError as error:report['delivery_logs']={'error':str(error)}
     return report
 
 def encrypt_report(report, public_key):
@@ -111,7 +123,7 @@ def main():
     if not token:
         raise InspectError('Voeg eerst het GitHub Actions-geheim SUPABASE_ACCESS_TOKEN toe.')
     public_key = Path('.github/supabase-review-public.pem').read_bytes()
-    envelope = encrypt_report(collect(token),public_key)
+    envelope = encrypt_report(collect(token,include_sources=os.environ.get('INCLUDE_SOURCE','true')=='true'),public_key)
     output = Path(os.environ.get('RUNNER_TEMP','/tmp'))/'lcp-inspectie.enc.json'
     output.write_text(json.dumps(envelope),encoding='utf-8')
     print('Projectcontrole voltooid. Het rapport is versleuteld; er zijn geen appinstellingen gewijzigd.')
