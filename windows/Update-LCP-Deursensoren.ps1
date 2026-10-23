@@ -162,7 +162,7 @@ function Invoke-LcpUpdateCore([string]$Root, [string]$RequestedWorker, [switch]$
         Set-Acl -LiteralPath $backup -AclObject $acl
         Copy-Item -LiteralPath $plan.Worker -Destination (Join-Path $backup 'worker.py')
         if (Test-Path -LiteralPath $plan.Runtime) { Copy-Item -LiteralPath $plan.Runtime -Destination (Join-Path $backup 'runtime.json') }
-        Export-ScheduledTask -TaskName $plan.Task.TaskName -TaskPath $plan.Task.TaskPath | Set-Content -LiteralPath (Join-Path $backup 'taak.xml') -Encoding UTF8
+        Export-ScheduledTask -TaskName $plan.Task.TaskName -TaskPath $plan.Task.TaskPath | Set-Content -LiteralPath (Join-Path $backup 'taak.xml') -Encoding Unicode
         @{ worker=$plan.Worker;sha256=(Get-FileHash -LiteralPath $plan.Worker -Algorithm SHA256).Hash;task=$plan.Task.TaskName;taskPath=$plan.Task.TaskPath } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $backup 'backup.json') -Encoding UTF8
         if ((Get-FileHash -LiteralPath (Join-Path $backup 'worker.py') -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $plan.Worker -Algorithm SHA256).Hash) { throw 'De back-upcontrole is mislukt. De bestaande worker blijft actief.' }
         Write-Host 'Back-up gemaakt. Alleen de bestaande LCP-worker wordt kort herstart.'
