@@ -75,6 +75,15 @@ if ($MyInvocation.InvocationName -ne '.') {
     if ($ExtraMap) { $ExtraMap = [Environment]::ExpandEnvironmentVariables($ExtraMap.Trim().Trim('"')) }
     $roots = @((Join-Path $env:LOCALAPPDATA 'LCP\Werklaptop'), $ExtraMap)
     $report = @(Get-LcpStartReport $roots)
+    $root = $roots[0]
+    $python = Join-Path $root '.venv\Scripts\python.exe'
+    $helper = Join-Path $PSScriptRoot 'inspect_lcp_launcher.py'
+    if ((Test-Path -LiteralPath $python -PathType Leaf) -and (Test-Path -LiteralPath $helper -PathType Leaf)) {
+        # -I isoleert het controlebestand van lokale Python-imports en PYTHONPATH.
+        $structure = @(& $python -I $helper --root $root 2>$null)
+        if ($LASTEXITCODE -eq 0) { $report += $structure }
+        else { $report += 'Aanvullende startercontrole kon niet worden uitgevoerd.' }
+    }
     $output = Join-Path $PSScriptRoot 'LCP-startcontrole.txt'
     $report | Set-Content -LiteralPath $output -Encoding UTF8
     $report | ForEach-Object { Write-Host $_ }

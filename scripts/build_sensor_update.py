@@ -5,7 +5,7 @@ from pathlib import Path
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-FILES=['Update-LCP-Deursensoren.ps1','Update-LCP-Deursensoren.cmd','Herstel-LCP-Worker.cmd','Controleer-LCP-Start.ps1','Controleer-LCP-Start.cmd','lcp_worker_zigbee_v2.py','check_lcp_installation.py']
+FILES=['Update-LCP-Deursensoren.ps1','Update-LCP-Deursensoren.cmd','Herstel-LCP-Worker.cmd','Controleer-LCP-Start.ps1','Controleer-LCP-Start.cmd','inspect_lcp_launcher.py','lcp_worker_zigbee_v2.py','check_lcp_installation.py']
 
 def build():
     files={name:(ROOT/'windows'/name).read_bytes() for name in FILES}

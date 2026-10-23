@@ -67,6 +67,11 @@ Python-startbestanden en opstartsnelkoppelingen en schrijft **LCP-startcontrole.
 naast het controlebestand. Het verandert geen taken of installatiebestanden en
 neemt geen wachtwoorden, tokens of overige opdrachtargumenten op. Deel de tekst
 uit dit verslag om de werkelijke startmethode te laten controleren.
+Als `support/account.py` aanwezig is, leest de controle ook de Python-structuur
+van die starter zonder hem uit te voeren. Vaste waarden worden afgeschermd;
+alleen vooraf toegestane bestandsnamen en technische sleutelnamen blijven staan.
+Inlogbestanden worden niet geopend. Een installatie die via een snelkoppeling
+in Opstarten draait, wordt nog niet door de taakgebaseerde updater gewijzigd.
 
 Als de nieuwe worker niet goed start, zet de update de vorige worker en
 runtime-instellingen terug en start zij de bestaande taak opnieuw. Voor handmatig
