@@ -7,37 +7,78 @@ param(
 $ErrorActionPreference = 'Stop'
 $PackageDir = $PSScriptRoot
 
+function Resolve-LcpPath([AllowNull()][string]$Path, [string]$BasePath) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
+    $value = [Environment]::ExpandEnvironmentVariables($Path).Trim()
+    # Taakplanner kan een pad inclusief buitenste aanhalingstekens teruggeven.
+    if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
+        $value = $value.Substring(1, $value.Length - 2).Trim()
+    }
+    # COM-acties, URI's en onopgeloste taakvariabelen zijn geen bestandspaden.
+    if ([string]::IsNullOrWhiteSpace($value) -or $value -match '[<>"|?*\x00-\x1f]' -or $value -match '%[^%]+%|\$\(') { return $null }
+    try {
+        if ($value -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+(?:[\\/]|$))') {
+            # Geen drive-relatieve paden zoals C:script.py of \script.py.
+            if ($value -match '[:\\]' -and ($value.Contains(':') -or $value.StartsWith('\'))) { return $null }
+            $base = Resolve-LcpPath $BasePath
+            if (-not $base) { return $null }
+            $value = [IO.Path]::Combine($base, $value)
+        }
+        return [IO.Path]::GetFullPath($value)
+    } catch {
+        return $null
+    }
+}
+
 function Test-LcpInside([string]$Path, [string]$Root) {
-    return [IO.Path]::GetFullPath($Path).StartsWith([IO.Path]::GetFullPath($Root).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
+    $full = Resolve-LcpPath $Path
+    $base = Resolve-LcpPath $Root
+    if (-not $full -or -not $base) { return $false }
+    return $full.StartsWith($base.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
 }
 
 function Test-LcpAction($Action, [string]$Worker, [string]$Root) {
-    $leaf = [IO.Path]::GetFileName($Worker)
-    $command = "$($Action.Execute) $($Action.Arguments)"
-    if ($command.IndexOf($Worker, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
-    $working = [Environment]::ExpandEnvironmentVariables([string]$Action.WorkingDirectory)
-    if (-not $working) { $working = $Root }
-    if ((Test-LcpInside (Join-Path $working 'placeholder') $Root) -and $command.IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
-    $scripts = @([Environment]::ExpandEnvironmentVariables([string]$Action.Execute))
+    if (-not $Action -or [string]::IsNullOrWhiteSpace([string]$Action.Execute)) { return $false }
+    $workerPath = Resolve-LcpPath $Worker
+    $rootPath = Resolve-LcpPath $Root
+    if (-not $workerPath -or -not $rootPath) { return $false }
+    if ([string]::IsNullOrWhiteSpace([string]$Action.WorkingDirectory)) {
+        $working = $rootPath
+    } else {
+        $working = Resolve-LcpPath ([string]$Action.WorkingDirectory) $rootPath
+        if (-not $working) { return $false }
+    }
+    $execute = Resolve-LcpPath ([string]$Action.Execute) $working
+    if (-not $execute) { return $false }
+    $leaf = [IO.Path]::GetFileName($workerPath)
+    $command = [Environment]::ExpandEnvironmentVariables("$($Action.Execute) $($Action.Arguments)")
+    if ($command.IndexOf($workerPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    if ((Test-LcpInside (Join-Path $working 'placeholder') $rootPath) -and $command.IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    $scripts = @($execute)
     foreach ($m in [regex]::Matches([string]$Action.Arguments, '"([^"\r\n]+\.(?:py|ps1|cmd|bat))"|([^\s"]+\.(?:py|ps1|cmd|bat))')) {
         $value = if ($m.Groups[1].Success) { $m.Groups[1].Value } else { $m.Groups[2].Value }
-        $value = [Environment]::ExpandEnvironmentVariables($value)
-        if (-not [IO.Path]::IsPathRooted($value)) { $value = Join-Path $working $value }
-        $scripts += $value
+        $resolved = Resolve-LcpPath $value $working
+        if ($resolved) { $scripts += $resolved }
     }
     foreach ($script in $scripts) {
-        if ((Test-LcpInside $script $Root) -and (Test-Path -LiteralPath $script -PathType Leaf) -and [IO.Path]::GetExtension($script) -in @('.py','.ps1','.cmd','.bat')) {
-            if ([IO.File]::ReadAllText($script).IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+        if ((Test-LcpInside $script $rootPath) -and [IO.Path]::GetExtension($script) -in @('.py','.ps1','.cmd','.bat')) {
+            try {
+                if ((Test-Path -LiteralPath $script -PathType Leaf) -and [IO.File]::ReadAllText($script).IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+            } catch {
+                # Een niet-leesbare, andere Windows-taak mag de update niet blokkeren.
+            }
         }
     }
     return $false
 }
 
 function Get-LcpPlan([string]$Root, [string]$RequestedWorker) {
-    if (-not (Test-Path -LiteralPath $Root -PathType Container)) { throw 'De bestaande map %LOCALAPPDATA%\LCP\Werklaptop is niet gevonden. Er is niets aangepast.' }
+    $Root = Resolve-LcpPath $Root
+    if (-not $Root -or -not (Test-Path -LiteralPath $Root -PathType Container)) { throw 'De bestaande map %LOCALAPPDATA%\LCP\Werklaptop is niet gevonden. Er is niets aangepast.' }
     $Root = (Resolve-Path -LiteralPath $Root).Path
     if ($RequestedWorker) {
-        if (-not [IO.Path]::IsPathRooted($RequestedWorker)) { $RequestedWorker = Join-Path $Root $RequestedWorker }
+        $RequestedWorker = Resolve-LcpPath $RequestedWorker $Root
+        if (-not $RequestedWorker) { throw 'Het opgegeven workerpad is niet geldig. Er is niets vervangen.' }
         $candidates = @(Get-Item -LiteralPath $RequestedWorker)
     } else {
         $folders = @($Root) + @(Get-ChildItem -LiteralPath $Root -Directory | Where-Object { $_.Name -notmatch '^(\.|back|backup|node_modules|venv)' } | Select-Object -ExpandProperty FullName)
@@ -61,8 +102,8 @@ function Get-LcpPlan([string]$Root, [string]$RequestedWorker) {
     if (-not $tasks[0].Settings.Enabled) { throw 'De bestaande achtergrondtaak is uitgeschakeld. De update verandert die keuze niet.' }
     $pythonCandidates = @((Join-Path $Root '.venv\Scripts\python.exe'), (Join-Path $Root 'venv\Scripts\python.exe'))
     foreach ($action in $tasks[0].Actions) {
-        $exe = [Environment]::ExpandEnvironmentVariables([string]$action.Execute).Trim('"')
-        if ($exe -match 'pythonw?\.exe$' -and [IO.Path]::IsPathRooted($exe)) { $pythonCandidates = @((Join-Path (Split-Path $exe) 'python.exe')) + $pythonCandidates }
+        $exe = Resolve-LcpPath ([string]$action.Execute) $Root
+        if ($exe -and $exe -match 'pythonw?\.exe$') { $pythonCandidates = @((Join-Path (Split-Path $exe) 'python.exe')) + $pythonCandidates }
     }
     $python = $pythonCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
     if (-not $python) { throw 'De bestaande Python-omgeving is niet gevonden. Er is niets vervangen.' }

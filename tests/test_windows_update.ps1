@@ -6,9 +6,9 @@ $tokens=$null;$errors=$null
 if ($errors.Count) { throw ('PowerShell-syntaxfout: '+$errors[0].Message) }
 . $file
 function Assert-True($Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
-$root=Join-Path $env:TEMP ('LCP-update-test-'+[guid]::NewGuid().ToString('N'))
+$root=Join-Path $env:TEMP ('LCP update test '+[guid]::NewGuid().ToString('N'))
 $package=Join-Path $root 'bundle'
-$install=Join-Path $root 'Werklaptop'
+$install=Join-Path $root 'Werklaptop met spaties'
 New-Item -ItemType Directory -Path $package,$install | Out-Null
 $PackageDir=$package
 $script:TestInstall=$install
@@ -40,7 +40,16 @@ $hashes=@{}
 foreach($name in @('lcp_worker_zigbee_v2.py','check_lcp_installation.py')) { $hashes[$name]=(Get-FileHash (Join-Path $package $name)).Hash }
 @{version='3.0.0';files=$hashes} | ConvertTo-Json | Set-Content (Join-Path $package 'manifest.json')
 $script:FakeTask=[pscustomobject]@{TaskName='LCP bestaande worker';TaskPath='\';Settings=[pscustomobject]@{Enabled=$true};Actions=@([pscustomobject]@{Execute=$python;Arguments=('"'+(Join-Path $install 'start_lcp.py')+'"');WorkingDirectory=$install})}
-function Get-ScheduledTask { return $script:FakeTask }
+$script:UnrelatedTasks=@(
+ [pscustomobject]@{TaskName='COM-systeemtaak';Actions=@([pscustomobject]@{Execute=$null;Arguments=$null;WorkingDirectory=$null})},
+ [pscustomobject]@{TaskName='Lege opdracht';Actions=@([pscustomobject]@{Execute='';Arguments='';WorkingDirectory=''})},
+ [pscustomobject]@{TaskName='Taakvariabele';Actions=@([pscustomobject]@{Execute='$(Arg0)';Arguments='';WorkingDirectory='$(Arg1)'})},
+ [pscustomobject]@{TaskName='Ander ongeldig pad';Actions=@([pscustomobject]@{Execute='C:\ongeldig"pad\tool.exe';Arguments='';WorkingDirectory=''})},
+ [pscustomobject]@{TaskName='Onbekende omgevingsvariabele';Actions=@([pscustomobject]@{Execute='%LCP_ONBEKENDE_TAAKVARIABELE%\tool.exe';Arguments='';WorkingDirectory=''})},
+ [pscustomobject]@{TaskName='Opdracht zonder volledig pad';Actions=@([pscustomobject]@{Execute='cmd.exe';Arguments='/c echo voorbeeld';WorkingDirectory=''})},
+ [pscustomobject]@{TaskName='Lege actie';Actions=@($null)}
+)
+function Get-ScheduledTask { return @($script:UnrelatedTasks) + @($script:FakeTask) }
 function Disable-ScheduledTask { param($TaskName,$TaskPath);$script:FakeTask.Settings.Enabled=$false }
 function Enable-ScheduledTask { param($TaskName,$TaskPath);$script:FakeTask.Settings.Enabled=$true }
 function Stop-ScheduledTask { param($TaskName,$TaskPath);$script:Stops++;if($script:RefuseStop){$script:RefuseStop=$false;throw 'Gesimuleerde taakweigering'} }
@@ -56,6 +65,15 @@ function Wait-LcpHealth($Plan,$Started) {
  if ($script:SimulateFailure) { throw 'Gesimuleerde startfout' }
  & $script:RealWait $Plan $Started
 }
+# GetFullPath mag nooit de volledige taakdetectie onderbreken voor andere taken.
+foreach($invalid in @('', ' ', 'C:\ongeldig"pad\tool.exe', '$(Arg0)', '%LCP_ONBEKENDE_TAAKVARIABELE%\tool.exe', ('C:\nul'+[char]0+'\file.py'), 'https://voorbeeld.invalid/script.py', 'C:script.py')) {
+ Assert-True (-not (Test-LcpInside $invalid $install)) 'Ongeldig of onopgelost taakpad moet worden overgeslagen'
+}
+Assert-True (Test-LcpInside ('"'+$worker+'"') ('"'+$install+'"')) 'Paden met aanhalingstekens en spaties moeten worden herkend'
+Assert-True (-not (Test-LcpInside ($install+'-ander\worker.py') $install)) 'Een map met dezelfde naam als prefix is geen onderdeel van de installatie'
+$quotedAction=[pscustomobject]@{Execute=('"'+$python+'"');Arguments=('"'+(Join-Path $install 'start_lcp.py')+'"');WorkingDirectory=('"'+$install+'"')}
+Assert-True (Test-LcpAction $quotedAction $worker $install) 'Geldige starter met aanhalingstekens moet herkend worden'
+$script:FakeTask.Actions=@($quotedAction)
 try {
  Invoke-LcpUpdate -Root $install
  Assert-True ((Get-FileHash $worker).Hash -eq $hashes['lcp_worker_zigbee_v2.py']) 'Nieuwe worker is niet geplaatst'
