@@ -12,6 +12,11 @@ begin
  set local role authenticated;
  select count(*) into n from public.lcp_devices where friendly_name in('LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve');
  if n<>4 then raise exception 'Beheerder kan sensoren niet lezen.';end if;
+ update public.lcp_devices set message_closed=message_closed,
+  alert_closed_when_armed=alert_closed_when_armed,long_alert_uses_schedule=long_alert_uses_schedule
+ where friendly_name='LCP reserve';
+ get diagnostics n=row_count;
+ if n<>1 then raise exception 'Beheerder kan nieuwe sensorinstellingen niet opslaan.';end if;
  reset role;
  perform set_config('request.jwt.claim.sub',gen_random_uuid()::text,true);
  set local role authenticated;
