@@ -29,6 +29,9 @@ select jsonb_build_object(
  'preferences',(select coalesce(jsonb_agg(to_jsonb(p)),'[]') from
   (select * from public.lcp_push_preferences limit 100) p),
  'preference_count',(select count(*) from public.lcp_push_preferences),
+ 'devices',(select coalesce(jsonb_agg(to_jsonb(d)),'[]') from public.lcp_devices d),
+ 'device_constraints',(select coalesce(jsonb_agg(jsonb_build_object('name',conname,'definition',pg_get_constraintdef(oid))),'[]')
+  from pg_constraint where conrelid='public.lcp_devices'::regclass),
  'preference_constraints',(select coalesce(jsonb_agg(jsonb_build_object('name',conname,'definition',pg_get_constraintdef(oid))),'[]')
   from pg_constraint where conrelid='public.lcp_push_preferences'::regclass),
  'preference_triggers',(select coalesce(jsonb_agg(jsonb_build_object('name',tgname,'definition',pg_get_triggerdef(oid))),'[]')
