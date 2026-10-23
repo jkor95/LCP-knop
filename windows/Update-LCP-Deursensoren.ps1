@@ -53,7 +53,7 @@ function Test-LcpAction($Action, [string]$Worker, [string]$Root) {
     $leaf = [IO.Path]::GetFileName($workerPath)
     $command = [Environment]::ExpandEnvironmentVariables("$($Action.Execute) $($Action.Arguments)")
     if ($command.IndexOf($workerPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
-    if ((Test-LcpInside (Join-Path $working 'placeholder') $rootPath) -and $command.IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    if ((Test-LcpInside ([IO.Path]::Combine($working, 'placeholder')) $rootPath) -and $command.IndexOf($leaf, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
     $scripts = @($execute)
     foreach ($m in [regex]::Matches([string]$Action.Arguments, '"([^"\r\n]+\.(?:py|ps1|cmd|bat))"|([^\s"]+\.(?:py|ps1|cmd|bat))')) {
         $value = if ($m.Groups[1].Success) { $m.Groups[1].Value } else { $m.Groups[2].Value }

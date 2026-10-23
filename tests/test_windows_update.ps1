@@ -47,6 +47,7 @@ $script:UnrelatedTasks=@(
  [pscustomobject]@{TaskName='Ander ongeldig pad';Actions=@([pscustomobject]@{Execute='C:\ongeldig"pad\tool.exe';Arguments='';WorkingDirectory=''})},
  [pscustomobject]@{TaskName='Onbekende omgevingsvariabele';Actions=@([pscustomobject]@{Execute='%LCP_ONBEKENDE_TAAKVARIABELE%\tool.exe';Arguments='';WorkingDirectory=''})},
  [pscustomobject]@{TaskName='Opdracht zonder volledig pad';Actions=@([pscustomobject]@{Execute='cmd.exe';Arguments='/c echo voorbeeld';WorkingDirectory=''})},
+ [pscustomobject]@{TaskName='Ongekoppelde schijf';Actions=@([pscustomobject]@{Execute='cmd.exe';Arguments='/c echo voorbeeld';WorkingDirectory='Z:\niet-bestaande-map'})},
  [pscustomobject]@{TaskName='Lege actie';Actions=@($null)}
 )
 function Get-ScheduledTask { return @($script:UnrelatedTasks) + @($script:FakeTask) }
