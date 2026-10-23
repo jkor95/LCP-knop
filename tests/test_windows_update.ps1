@@ -138,7 +138,11 @@ def worker():
  [IO.File]::WriteAllText($shortcut,'bestaande snelkoppeling; niet wijzigen')
  $vbsHash=(Get-FileHash $vbs).Hash
  $link=[pscustomobject]@{TargetPath='C:\Windows\System32\wscript.exe';WorkingDirectory=$startup;Arguments=('"'+$vbs+'"')}
- Assert-True (Test-LcpStartupLink $link $startup) 'Bestaande Opstarten-snelkoppeling moet herkend worden'
+ $linkTarget=Resolve-LcpPath ([string]$link.TargetPath)
+ $linkWorking=Resolve-LcpPath ([string]$link.WorkingDirectory)
+ $linkMatches=@([regex]::Matches([string]$link.Arguments,'"([^"\r\n]+\.vbs)"|([^\s"]+\.vbs)'))
+ $linkScript=Resolve-LcpPath $linkMatches[0].Groups[1].Value $linkWorking
+ Assert-True (Test-LcpStartupLink $link $startup) ('Bestaande Opstarten-snelkoppeling moet herkend worden; doel='+$linkTarget+'; map='+$linkWorking+'; root='+$startup+'; matches='+$linkMatches.Count+'; script='+$linkScript+'; bestaat='+(Test-Path -LiteralPath $vbs -PathType Leaf))
  $link.Arguments='"C:\andere map\LCP-background.vbs"'
  Assert-True (-not (Test-LcpStartupLink $link $startup)) 'Snelkoppeling naar andere installatie mag niet worden gebruikt'
  function Get-LcpStartupShortcut { param($Root);if($Root -eq $startup){return $shortcut} }
