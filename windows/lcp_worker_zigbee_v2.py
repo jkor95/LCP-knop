@@ -377,7 +377,7 @@ class LCPWorker:
             return  # Een ontbrekende of onbekende status betekent niet 'veilig'.
         state = self.states.setdefault(name, {})
         previous = state.get("tamper")
-        if retained and name in self.tamper_confirmed:
+        if retained and (name in self.tamper_confirmed or previous is True):
             return
         baseline = retained or name not in self.tamper_confirmed or not device.get("enabled") or not device.get("alert_tamper")
         state["tamper"] = tamper
@@ -390,7 +390,10 @@ class LCPWorker:
             self.pending = [event for event in self.pending if not (event["name"] == name and event["kind"] == "tamper")]
         if previous is not tamper:
             self.save_states()
-        if not baseline and previous is False and tamper:
+        # Een eerste ACTUEEL sabotagealarm mag niet worden gemist omdat er nog
+        # geen normale status was. Een bewaard alarm of reeds gemeld incident
+        # wordt nooit opnieuw verstuurd, ook niet na een workerherstart.
+        if not retained and device.get("enabled") and device.get("alert_tamper") and previous is not True and tamper:
             self.queue_sensor(name, "tamper")
 
     def check_open_timers(self):

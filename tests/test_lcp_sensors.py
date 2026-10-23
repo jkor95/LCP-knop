@@ -18,6 +18,15 @@ SCHEDULE = [
 ]
 
 class SensorTests(unittest.TestCase):
+    def test_first_live_tamper_alerts_but_saved_incident_never_repeats(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur']['alert_tamper']=True
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        worker.invalidate()
+        worker.handle_event('LCP nooddeur',{'tamper':False},True)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.assertEqual(self.kinds(sent),['tamper'])
+
     def test_tamper_payload_without_contact_alerts_once_per_incident_24_7(self):
         worker,sent=self.make_worker()
         worker.devices['LCP nooddeur'].update(alert_tamper=True,arming_mode='disarmed')

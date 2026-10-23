@@ -33,12 +33,11 @@ reserve staat die uit. Op de beheerpagina kun je dit per sensor uitschakelen en
 de meldingstekst aanpassen. `{naam}` wordt vervangen door de naam in LCP.
 
 Sabotagemeldingen gelden 24 uur per dag, onafhankelijk van de deurstand en het
-weekschema, zolang het apparaat actief is. Alleen een bevestigde overgang van
-`tamper: false` naar `tamper: true` geeft een melding. Herhaalde statusberichten
+weekschema, zolang het apparaat actief is. Een actuele `tamper: true` geeft eenmaal een melding, ook als er nog geen
+normale status is ontvangen. Herhaalde statusberichten
 geven geen extra melding; herstel naar false maakt een nieuw incident mogelijk.
-Ook berichten zonder deurstand worden verwerkt. De eerste actuele status na
-opstarten of een verbindingsonderbreking vormt alleen de uitgangsstatus; een
-bewaard MQTT-bericht geeft geen alarm. Een ontbrekende eigenschap wordt niet
+Ook berichten zonder deurstand worden verwerkt. Een bewaard MQTT-bericht geeft geen alarm. Een bewaard of al gemeld
+sabotage-incident wordt na een herstart niet opnieuw gemeld. Een ontbrekende eigenschap wordt niet
 als veilig beschouwd. Het contact detecteert sabotage van de behuizing, niet
 gegarandeerd iedere manier waarop de sensor van de deur kan worden verwijderd.
 
