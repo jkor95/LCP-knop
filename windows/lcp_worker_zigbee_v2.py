@@ -22,7 +22,7 @@ MQTT_HOST = "127.0.0.1"
 MQTT_PORT = 1883
 SYNC_SECONDS = 15
 BUTTON_DEBOUNCE = 2.0
-WORKER_VERSION = "3.0.0"
+WORKER_VERSION = "3.1.0"
 RUNTIME_FILE = Path(__file__).with_name("lcp_sensor_runtime.json")
 try:
     RUNTIME = json.loads(RUNTIME_FILE.read_text(encoding="utf-8-sig"))
@@ -98,6 +98,11 @@ def schedule_active(device, moment=None):
 
 class LCPWorker:
     def __init__(self):
+        global STATE_FILE
+        # De bestaande DPAPI-starter stelt een eigen oud statusbestand in.
+        # Bewaar dat bestand; v3 krijgt bij deze installatie een apart bestand.
+        if RUNTIME.get("launcher_state_isolated") is True:
+            STATE_FILE = Path(RUNTIME["state_file"])
         self.key = os.environ["LCP_PUBLISHABLE_KEY"]
         self.email = os.environ["LCP_EMAIL"]
         self.password = os.environ["LCP_PASSWORD"]
@@ -137,7 +142,7 @@ class LCPWorker:
         try:
             raw = json.loads(STATE_FILE.read_text(encoding="utf-8"))
             if isinstance(raw, dict):
-                return {name: {"closed": value["closed"], "open_at": None, "long_sent": value.get("long_sent") is True}
+                return {name: {"closed": value["closed"], "open_at": None, "long_sent": value.get("long_sent") is True, "second_sent": value.get("second_sent") is True}
                         for name, value in raw.items() if isinstance(value, dict) and isinstance(value.get("closed"), bool)}
         except (OSError, ValueError):
             pass
@@ -282,7 +287,7 @@ class LCPWorker:
             return
         event = self.pending[0]
         device = self.devices.get(event["name"], {})
-        if not device.get("enabled") or (event["kind"] == "left_open" and self.states.get(event["name"], {}).get("closed") is not False):
+        if not device.get("enabled") or (event["kind"] in ("left_open", "left_open_again") and self.states.get(event["name"], {}).get("closed") is not False):
             self.pending.pop(0)
             return
         try:
@@ -333,7 +338,8 @@ class LCPWorker:
             # De eerste actuele status is uitsluitend een uitgangsstatus. Een bewaarde
             # openstatus start geen timer. Na herstart wordt nooit tijd teruggeteld.
             self.states[name] = {"closed": closed, "open_at": None,
-                "long_sent": bool(previous.get("long_sent")) if previous.get("closed") is False and not closed else False}
+                "long_sent": bool(previous.get("long_sent")) if previous.get("closed") is False and not closed else False,
+                "second_sent": bool(previous.get("second_sent")) if previous.get("closed") is False and not closed else False}
             if not retained and device.get("enabled"):
                 self.confirmed.add(name)
                 if not closed:
@@ -346,10 +352,10 @@ class LCPWorker:
             return
         if previous.get("closed") is closed:
             return
-        self.states[name] = {"closed": closed, "open_at": None if closed else time.time(), "long_sent": False}
+        self.states[name] = {"closed": closed, "open_at": None if closed else time.time(), "long_sent": False, "second_sent": False}
         if closed:
             self.open_since.pop(name, None)
-            self.pending = [event for event in self.pending if not (event["name"] == name and event["kind"] == "left_open")]
+            self.pending = [event for event in self.pending if not (event["name"] == name and event["kind"] in ("left_open", "left_open_again"))]
         else:
             self.open_since[name] = time.monotonic()
         self.save_states()
@@ -366,16 +372,20 @@ class LCPWorker:
             state = self.states.get(name, {})
             if name not in self.confirmed or not device.get("enabled") or not device.get("alert_open_long", True):
                 continue
-            if state.get("closed") is not False or state.get("long_sent"):
+            if state.get("closed") is not False:
                 continue
             if device.get("long_alert_uses_schedule", False) and not schedule_active(device):
                 continue
             minutes = max(1, min(1440, int(device.get("open_limit_minutes") or 5)))
-            if now - opened < minutes * 60:
-                continue
-            state["long_sent"] = True
-            self.save_states()
-            self.queue_sensor(name, "left_open")
+            if not state.get("long_sent") and now - opened >= minutes * 60:
+                state["long_sent"] = True
+                self.save_states()
+                self.queue_sensor(name, "left_open")
+            second = int(device.get("second_open_limit_minutes") or 0)
+            if state.get("long_sent") and not state.get("second_sent") and minutes < second <= 1440 and now - opened >= second * 60:
+                state["second_sent"] = True
+                self.save_states()
+                self.queue_sensor(name, "left_open_again")
 
     def save_health(self):
         try:

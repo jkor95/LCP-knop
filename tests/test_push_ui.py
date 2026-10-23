@@ -73,6 +73,23 @@ class PushUITests(unittest.TestCase):
         self.page.click('#newButton')
         self.assertEqual(self.page.input_value('#message_button'), 'Bestaande standaardtekst')
 
+    def test_second_door_warning_preview_validation_and_save(self):
+        self.open_settings()
+        self.page.select_option('#deviceSelect','1')
+        self.page.fill('#second_open_limit_minutes','10')
+        self.page.fill('#message_second_open','Let op: al {minuten} minuten open.')
+        self.page.select_option('#previewKind','message_second_open')
+        self.assertEqual(self.page.text_content('#previewBody'),'Let op: al 10 minuten open.')
+        self.page.fill('#second_open_limit_minutes','4')
+        self.page.click('#save')
+        self.assertIn('later zijn dan de eerste',self.page.text_content('#error'))
+        self.page.fill('#second_open_limit_minutes','10')
+        self.page.click('#save')
+        self.page.wait_for_function("window.__lcpTest.events.some(e=>e.operation==='update' && e.table==='lcp_devices')")
+        row=self.page.evaluate("window.__lcpTest.events.find(e=>e.operation==='update' && e.table==='lcp_devices').row")
+        self.assertEqual(row['second_open_limit_minutes'],10)
+        self.assertEqual(row['message_second_open'],'Let op: al {minuten} minuten open.')
+
     def test_save_error_identifies_cause_and_preserves_draft(self):
         self.open_settings()
         self.page.fill('#pushTitle', 'Mijn nieuwe titel')

@@ -12,6 +12,12 @@ moet eenmalig op de **bestaande Windows-werklaptop** worden bijgewerkt.
 | TRAP nooddeur | Aan | Aan | Aan |
 | LCP reserve | Uit | Uit | Uit |
 
+De twee nooddeuren hebben daarnaast standaard een tweede waarschuwing na
+**10 minuten onafgebroken open**, gerekend vanaf openen. De beheerpagina heeft
+hiervoor een eigen tijd en tekst. Met 0 minuten schakel je die tweede melding uit.
+Sluiten annuleert beide timers. Per open/sluitcyclus worden maximaal twee
+tijdswaarschuwingen verstuurd.
+
 De drie actieve sensoren melden 24 uur per dag, 7 dagen per week. De reserve
 blijft gekoppeld en uitgeschakeld. De namen hierboven moeten exact overeenkomen
 met de bestaande Friendly names in Zigbee2MQTT, inclusief spaties. Op de
@@ -29,15 +35,24 @@ apart instellen. Kies **Volgens weekschema** voor optionele tijdvakken.
    en kies in Verkenner **Alles uitpakken**. Pak het uit in Downloads, buiten
    `%LOCALAPPDATA%\LCP\Werklaptop`.
 3. Dubbelklik op **Update-LCP-Deursensoren.cmd** in de uitgepakte map.
-4. Wacht op **Update voltooid: MQTT verbonden en de vier deursensoren geladen**.
-   De LCP-worker wordt kort herstart. De update maakt eerst een gecontroleerde
-   back-up onder `%LOCALAPPDATA%\LCP\Werklaptop\worker-backups`.
+4. De update maakt eerst een gecontroleerde back-up onder
+   `%LOCALAPPDATA%\LCP\Werklaptop\worker-backups`.
+   Bij jouw **Opstarten-snelkoppeling** verschijnt **Update voorbereid. Herstart
+   Windows om de vier deursensoren te activeren.** Sla je werk op, herstart
+   Windows en meld je aan met hetzelfde account. Wacht een minuut en open
+   **Controleer-LCP-Deursensoren.cmd** uit het uitgepakte pakket. Er moet
+   **Actief: nieuwe sensorworker, MQTT verbonden en alle vier deursensoren
+   geladen** verschijnen. De bestaande achtergrondstarter en MQTT-aanmelding
+   blijven behouden; de updater stopt geen processen en start geen tweede worker.
+   Bij een installatie via Taakplanner herstart de updater alleen de bestaande
+   taak en wacht op **Update voltooid**; een mislukte start wordt teruggedraaid.
 5. Druk op de bestaande LCP-knop. Controleer dat je gewone iPhone-melding met
    de bestaande knoptekst aankomt.
 6. Beweeg elke actieve deur eenmaal en sluit hem weer om de actuele
    uitgangsstatus te bevestigen. Open en sluit daarna nogmaals: controleer beide
-   meldingen. Laat iedere nooddeur vijf minuten open om de extra waarschuwing
-   te controleren. Sluiten binnen vijf minuten annuleert de waarschuwing.
+   meldingen. Laat iedere nooddeur vijf en daarna tien minuten open om beide
+   waarschuwingen te controleren. Sluiten binnen vijf minuten annuleert beide;
+   sluiten tussen vijf en tien minuten annuleert de tweede.
 
 De update herkent de bestaande Python-worker, MQTT-host, poort, basistopic en
 bijbehorende starttaak. Zij behoudt de bestaande starter, DPAPI-inloggegevens en
@@ -70,13 +85,17 @@ uit dit verslag om de werkelijke startmethode te laten controleren.
 Als `support/account.py` aanwezig is, leest de controle ook de Python-structuur
 van die starter zonder hem uit te voeren. Vaste waarden worden afgeschermd;
 alleen vooraf toegestane bestandsnamen en technische sleutelnamen blijven staan.
-Inlogbestanden worden niet geopend. Een installatie die via een snelkoppeling
-in Opstarten draait, wordt nog niet door de taakgebaseerde updater gewijzigd.
+Inlogbestanden worden niet geopend. De updater ondersteunt de herkende
+Opstarten-installatie met `support/account.py` en `support/upstream_worker.py`.
+Hij behoudt de starter en diens MQTT-aanmelding. De nieuwe worker krijgt een
+afzonderlijk v3-statusbestand; het oude statusbestand wordt niet overschreven.
 
-Als de nieuwe worker niet goed start, zet de update de vorige worker en
-runtime-instellingen terug en start zij de bestaande taak opnieuw. Voor handmatig
+Bij de Taakplanner-installatie zet de update na een mislukte start de vorige
+worker terug en start zij de bestaande taak opnieuw. Bij de Opstarten-installatie
+kan die controle pas na de Windows-herstart gebeuren. Voor handmatig
 herstel kun je **Herstel-LCP-Worker.cmd** uit hetzelfde uitgepakte pakket openen.
-Dit zet de laatste gecontroleerde workerback-up terug. Test daarna de bestaande
+Dit zet de laatste gecontroleerde workerback-up terug. Bij Opstarten moet je
+Windows daarna opnieuw starten. Test daarna de bestaande
 LCP-knop. De Zigbee-database wordt ook bij herstel niet gewijzigd.
 
 ## Status na herstart of onderbreking

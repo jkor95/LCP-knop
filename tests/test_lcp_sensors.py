@@ -18,6 +18,52 @@ SCHEDULE = [
 ]
 
 class SensorTests(unittest.TestCase):
+    def test_second_warning_at_ten_minutes_once_and_close_cancels_both(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur']['second_open_limit_minutes']=10
+        self.event(worker,True)
+        self.event(worker,False)
+        self.now+=300
+        worker.check_open_timers()
+        self.now+=299
+        worker.check_open_timers()
+        self.assertEqual(self.kinds(sent),['opened','left_open'])
+        self.now+=1
+        worker.check_open_timers()
+        self.now+=3600
+        worker.check_open_timers()
+        self.assertEqual(self.kinds(sent),['opened','left_open','left_open_again'])
+        self.event(worker,True)
+        self.event(worker,False)
+        self.now+=300
+        worker.check_open_timers()
+        self.event(worker,True)
+        self.now+=600
+        worker.check_open_timers()
+        self.assertEqual(self.kinds(sent),['opened','left_open','left_open_again','closed','opened','left_open','closed'])
+
+    def test_second_warning_not_repeated_after_reconnect_same_open_cycle(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur']['second_open_limit_minutes']=10
+        self.event(worker,False)
+        self.now+=600
+        worker.check_open_timers()
+        worker.invalidate()
+        self.event(worker,False)
+        self.now+=600
+        worker.check_open_timers()
+        self.assertEqual(self.kinds(sent),['left_open','left_open_again'])
+
+    def test_old_launcher_state_file_is_preserved_with_dedicated_v3_runtime(self):
+        with tempfile.TemporaryDirectory() as folder:
+            old=Path(folder)/'old.json';new=Path(folder)/'v3.json'
+            old.write_text('{"oud":"bewaren"}')
+            with patch('lcp_worker_zigbee_v2.STATE_FILE',old), patch('lcp_worker_zigbee_v2.RUNTIME',{'launcher_state_isolated':True,'state_file':str(new)}):
+                worker,_=self.make_worker()
+                LCPWorker.save_states(worker)
+            self.assertEqual(old.read_text(),'{"oud":"bewaren"}')
+            self.assertTrue(new.is_file())
+
     def setUp(self):
         self.now = 1000.0
         self.clock = patch('lcp_worker_zigbee_v2.time.monotonic', side_effect=lambda: self.now)

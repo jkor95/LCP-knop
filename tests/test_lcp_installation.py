@@ -16,7 +16,7 @@ class InstallationTests(unittest.TestCase):
             manifest=json.loads(package.read('manifest.json'))
             for name,digest in manifest['files'].items():
                 self.assertEqual(hashlib.sha256(package.read(name)).hexdigest(),digest)
-            for name in ['lcp_worker_zigbee_v2.py','check_lcp_installation.py','Update-LCP-Deursensoren.ps1','Update-LCP-Deursensoren.cmd','Herstel-LCP-Worker.cmd','Controleer-LCP-Start.ps1','Controleer-LCP-Start.cmd','inspect_lcp_launcher.py']:
+            for name in ['lcp_worker_zigbee_v2.py','check_lcp_installation.py','Update-LCP-Deursensoren.ps1','Update-LCP-Deursensoren.cmd','Herstel-LCP-Worker.cmd','Controleer-LCP-Start.ps1','Controleer-LCP-Start.cmd','Controleer-LCP-Deursensoren.cmd','inspect_lcp_launcher.py']:
                 self.assertEqual(package.read(name),(ROOT/'windows'/name).read_bytes())
 
     def test_preserves_existing_broker_and_topic_without_running_worker(self):
