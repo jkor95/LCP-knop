@@ -74,6 +74,9 @@ function Test-LcpAction($Action, [string]$Worker, [string]$Root) {
 }
 
 function Test-LcpStartupLink($Link, [string]$Root) {
+    # Windows kan dezelfde map als RUNNER~1 of als volledige gebruikersnaam geven.
+    $Root = Resolve-LcpPath $Root
+    if (-not $Root) { return $false }
     $target = Resolve-LcpPath ([string]$Link.TargetPath)
     $working = Resolve-LcpPath ([string]$Link.WorkingDirectory)
     $scripts = @([regex]::Matches([string]$Link.Arguments, '"([^"\r\n]+\.vbs)"|([^\s"]+\.vbs)'))
@@ -266,7 +269,7 @@ function Invoke-LcpUpdateCore([string]$Root, [string]$RequestedWorker, [switch]$
             try {
                 # Niet stoppen/starten: de bestaande ouder verzorgt stdin en MQTT.
                 Copy-Item -LiteralPath $newRuntime -Destination $plan.Runtime -Force
-                [IO.File]::Replace((Join-Path $stage 'worker.py'), $plan.Worker, $null)
+                [IO.File]::Replace((Join-Path $stage 'worker.py'), $plan.Worker, (Join-Path $stage 'replaced-worker.py'))
             } catch {
                 Restore-LcpFiles $plan $backup
                 throw 'Plaatsen mislukt; vorige bestanden teruggezet. Er zijn geen processen gestopt.'

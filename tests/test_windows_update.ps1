@@ -145,7 +145,7 @@ def worker():
  Assert-True (Test-LcpStartupLink $link $startup) ('Bestaande Opstarten-snelkoppeling moet herkend worden; doel='+$linkTarget+'; map='+$linkWorking+'; root='+$startup+'; matches='+$linkMatches.Count+'; script='+$linkScript+'; bestaat='+(Test-Path -LiteralPath $vbs -PathType Leaf))
  $link.Arguments='"C:\andere map\LCP-background.vbs"'
  Assert-True (-not (Test-LcpStartupLink $link $startup)) 'Snelkoppeling naar andere installatie mag niet worden gebruikt'
- function Get-LcpStartupShortcut { param($Root);if($Root -eq $startup){return $shortcut} }
+ function Get-LcpStartupShortcut { param($Root);if((Resolve-LcpPath $Root) -eq (Resolve-LcpPath $startup)){return $shortcut} }
  $script:FakeTask=$null
  $startsBefore=$script:Starts;$stopsBefore=$script:Stops
  Invoke-LcpUpdate -Root $startup
