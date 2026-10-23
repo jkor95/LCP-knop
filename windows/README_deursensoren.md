@@ -55,6 +55,19 @@ aangepast; ga niet opnieuw installeren en koppel de sensoren niet opnieuw.
 
 ## Herstel
 
+### Starttaak of installatiemap niet herkend
+
+Uitpakken in Downloads is goed: de update zoekt de bestaande installatie apart.
+Een map `LCP-knop-main` kan een uitgepakte broncodedownload zijn en hoeft niet
+de actieve installatie te zijn. Verplaats geen bestanden om de controle te omzeilen.
+
+Open **Controleer-LCP-Start.cmd** in het uitgepakte pakket. Vul desgevraagd het
+pad van je andere LCP-map in, of druk op Enter. Dit leest de starttaken,
+Python-startbestanden en opstartsnelkoppelingen en schrijft **LCP-startcontrole.txt**
+naast het controlebestand. Het verandert geen taken of installatiebestanden en
+neemt geen wachtwoorden, tokens of overige opdrachtargumenten op. Deel de tekst
+uit dit verslag om de werkelijke startmethode te laten controleren.
+
 Als de nieuwe worker niet goed start, zet de update de vorige worker en
 runtime-instellingen terug en start zij de bestaande taak opnieuw. Voor handmatig
 herstel kun je **Herstel-LCP-Worker.cmd** uit hetzelfde uitgepakte pakket openen.

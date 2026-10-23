@@ -4,6 +4,7 @@ on:
     paths:
       - 'windows/**'
       - 'tests/test_windows_update.ps1'
+      - 'tests/test_windows_start_report.ps1'
       - 'scripts/build_sensor_update.py'
       - '.github/workflows/lcp-windows-update.yml'
   workflow_dispatch:
@@ -24,3 +25,9 @@ jobs:
       - name: Controleer update ook met PowerShell 7
         shell: pwsh
         run: .\tests\test_windows_update.ps1
+      - name: Controleer leesverslag met PowerShell 5
+        shell: powershell
+        run: .\tests\test_windows_start_report.ps1
+      - name: Controleer leesverslag met PowerShell 7
+        shell: pwsh
+        run: .\tests\test_windows_start_report.ps1
