@@ -18,29 +18,30 @@
 <p class="sub">Open LCP op elk apparaat na een wijziging. iOS kan het bestaande beginschermicoon bewaren. Voor een nieuw icoon moet je de webapp mogelijk opnieuw toevoegen en pushmeldingen opnieuw inschakelen. De huidige registratie wordt door het opslaan niet gewijzigd.</p>
 <p id="pushStatus" role="status">Pushinstellingen laden…</p></section>
 <section class="panel"><h2>Voorbeeld pushmelding</h2>
-<label for="previewKind">Bericht in het voorbeeld</label><select id="previewKind"><option value="default">Standaardmelding</option><option value="message_button">Geselecteerde knop: knopdruk</option><option value="message_open">Geselecteerde deur: openen</option><option value="message_left_open">Geselecteerde deur: te lang open</option></select>
+<label for="previewKind">Bericht in het voorbeeld</label><select id="previewKind"><option value="default">Standaardmelding</option><option value="message_button">Geselecteerde knop: knopdruk</option><option value="message_open">Geselecteerde deur: openen</option><option value="message_closed">Geselecteerde deur: sluiten</option><option value="message_left_open">Geselecteerde deur: te lang open</option></select>
 <div class="panel branding-preview" aria-live="polite"><img id="previewLogo" src="./icon-512.png" alt="Logo bij de voorbeeldmelding" width="56" height="56"><div><div class="sub" id="previewAppName">LCP</div><strong id="previewTitle">LCP – Oproep</strong><div id="previewBody">Er is op de oproepknop gedrukt.</div></div></div>
 <p class="sub">Voorbeeld van de inhoud; de exacte weergave en het geluid worden door iOS bepaald. De test gaat uitsluitend naar apparaten van je eigen ingelogde account, ook als je hier op een laptop werkt. Er wordt geen algemene oproep aangemaakt.</p>
 <button id="sendPushTest" type="button" disabled>Testmelding versturen</button></section>
 
+<section class="panel"><h2>Deursensoren op de werklaptop</h2><p>Voor openen, sluiten en de vijfminutenwaarschuwing is de bijgewerkte Windows-worker nodig. De vier sensoren staan hieronder klaar; de reserve staat uit.</p><p><a href="./downloads/LCP-deursensor-update.zip?v=20261023-1">Windows-updatepakket downloaden</a> · <a href="./windows/README_deursensoren.md">Update-instructies</a></p></section>
 <section class="panel"><h2>Gekoppelde apparaten</h2><label for="deviceSelect">Apparaat beheren</label><select id="deviceSelect"></select>
 <div class="actions" style="margin-top:12px"><button id="newButton" class="alt" type="button">+ Nieuwe knop</button><button id="newDoor" class="alt" type="button">+ Nieuwe deursensor</button></div><p class="sub">Koppel een nieuwe sensor eerst in Zigbee2MQTT op de laptop. De apparaatnaam moet exact overeenkomen met de naam in Zigbee2MQTT. Bij bestaande apparaten blijft deze koppeling vaststaan; de naam in LCP kun je wel aanpassen.</p></section>
 <section class="panel"><h2>Apparaatinstellingen <span class="badge" id="deviceBadge"></span></h2><div class="twocol"><div><label for="label">Naam in LCP</label><input id="label" maxlength="100" required></div><div><label for="friendly_name">Apparaatnaam in Zigbee2MQTT</label><input id="friendly_name" maxlength="80" required spellcheck="false"></div></div>
 <label class="check" style="margin-top:14px"><input type="checkbox" id="enabled"> <span>Apparaat activeren voor meldingen</span></label>
 <div id="buttonFields"><label for="message_button">Tekst pushmelding na knopdruk</label><textarea id="message_button" maxlength="240" required></textarea><p class="sub">De pushmelding gebruikt deze apparaattekst en de titel uit het onderdeel Pushmeldingen.</p></div>
 <div id="doorFields">
-<h3 class="subheading">Deurbeveiliging</h3><label for="arming_mode">Beveiliging</label><select id="arming_mode"><option value="auto">Automatisch volgens weekschema</option><option value="armed">Handmatig AAN (tot terugzetten naar Auto)</option><option value="disarmed">Handmatig UIT (tot terugzetten naar Auto)</option></select><p class="sub" id="armedStatus"></p>
-<label class="check"><input type="checkbox" id="alert_open_when_armed"><span>Directe waarschuwing als de deur opengaat terwijl de beveiliging aanstaat</span></label>
-<label for="message_open">Tekst directe waarschuwing</label><textarea id="message_open" maxlength="240"></textarea>
-<div class="note">Een waarschuwing voor een deur die te lang openstaat werkt apart van de beveiligingstijden: ook overdag, tenzij je deze optie uitzet.</div>
-<label class="check" style="margin-top:12px"><input type="checkbox" id="alert_open_long"><span>Waarschuwing als deur te lang open blijft</span></label>
+<h3 class="subheading">Deurbeveiliging</h3><label for="arming_mode">Beveiliging</label><select id="arming_mode"><option value="auto">Volgens weekschema</option><option value="armed">Altijd actief (24 uur per dag, 7 dagen per week)</option><option value="disarmed">Handmatig UIT (tot terugzetten naar Auto)</option></select><p class="sub" id="armedStatus"></p>
+<label class="check"><input type="checkbox" id="alert_open_when_armed"><span>Melding bij openen binnen de ingestelde meldtijden</span></label>
+<label for="message_open">Meldingstekst bij openen</label><textarea id="message_open" maxlength="240"></textarea>
+<label class="check"><input type="checkbox" id="alert_closed_when_armed"><span>Melding bij sluiten binnen de ingestelde meldtijden</span></label><label for="message_closed">Meldingstekst bij sluiten</label><textarea id="message_closed" maxlength="240"></textarea><div class="note">Openen en sluiten volgen de gekozen meldtijden. Kies Altijd actief voor meldingen op ieder moment. Na een herstart of verbindingsherstel vormt de eerste sensorstatus alleen de uitgangsstatus.</div>
+<label class="check" style="margin-top:12px"><input type="checkbox" id="alert_open_long"><span>Waarschuwing als deur te lang open blijft</span></label><label class="check"><input type="checkbox" id="long_alert_uses_schedule"><span>Gebruik de ingestelde meldtijden ook voor de waarschuwing bij te lang openstaan</span></label>
 <div class="twocol"><div><label for="open_limit_minutes">Aantal minuten open</label><input type="number" id="open_limit_minutes" min="1" max="1440" step="1"></div><div><label for="message_left_open">Tekst waarschuwing te lang open</label><p class="sub">Gebruik {minuten} om automatisch de ingestelde tijd in te vullen.</p><textarea id="message_left_open" maxlength="240"></textarea></div></div>
 <h3 class="subheading">Automatisch weekschema</h3><p class="sub">Per tijdvak kies je dagen en begin/eindtijd. Als de eindtijd eerder is dan de begintijd, loopt de periode door tot de volgende dag. 00:00 tot 00:00 is een volledige dag. Tijdzone: Nederland.</p>
 <div id="schedule"></div><button class="alt" type="button" id="addWindow">+ Tijdvak toevoegen</button>
 </div>
 <div class="actions" style="margin-top:18px"><button type="button" id="save">Instellingen opslaan</button><button type="button" id="delete" class="warn">Apparaat verwijderen</button></div>
 <p id="status" role="status"></p></section>
-<section class="panel"><h2>Hoe werkt het?</h2><p><b>Knop:</b> een korte druk verstuurt de ingestelde tekst. <b>Deur:</b> een melding bij openen komt alleen wanneer de beveiliging actief is. De waarschuwing na de ingestelde open tijd werkt ook wanneer de beveiliging uitstaat.</p><p class="sub">Wijzigingen in meldteksten en beveiligingsstand worden door de bijgewerkte laptop-worker ongeveer iedere 15 seconden opgehaald. Zonder die worker blijven de huidige SONOFF-meldingen ongewijzigd.</p></section>
+<section class="panel"><h2>Hoe werkt het?</h2><p><b>Knop:</b> een korte druk verstuurt de ingestelde tekst. <b>Deur:</b> meldingen bij openen en sluiten volgen de gekozen meldtijden. Een waarschuwing na onafgebroken openstaan wordt geannuleerd zodra de deur sluit. Met de aparte optie kies je of ook deze waarschuwing de meldtijden volgt.</p><p class="sub">Wijzigingen in meldteksten en beveiligingsstand worden door de bijgewerkte laptop-worker ongeveer iedere 15 seconden opgehaald. Zonder die worker blijven de huidige SONOFF-meldingen ongewijzigd.</p></section>
 </div></main>
 <script type="module">
 import {mountPushSettings} from './push-settings.js?v=20261018-3';
@@ -79,12 +80,12 @@ function activeNow(row){
 }
 function render(){
  if(!editing)return;
- ['label','friendly_name','message_button','message_open','message_left_open'].forEach(k=>el(k).value=editing[k]||'');
- ['enabled','alert_open_when_armed','alert_open_long'].forEach(k=>el(k).checked=!!editing[k]);
+ ['label','friendly_name','message_button','message_open','message_closed','message_left_open'].forEach(k=>el(k).value=editing[k]||(k==='message_closed'?'De deur is gesloten.':''));
+ ['enabled','alert_open_when_armed','alert_closed_when_armed','alert_open_long','long_alert_uses_schedule'].forEach(k=>el(k).checked=!!editing[k]);
  el('open_limit_minutes').value=editing.open_limit_minutes||5;el('arming_mode').value=editing.arming_mode||'auto';setVisible();
  el('schedule').replaceChildren();(editing.schedule||[]).forEach(addScheduleRow);
  const isDoor=editing.device_type==='contact';el('armedStatus').textContent=isDoor?('Beveiliging op dit moment: '+(activeNow(editing)?'AAN':'UIT')+' (voorbeeld, berekend in Nederlandse tijd)'):'';
- ['message_button','message_open','message_left_open'].forEach(key=>el('previewKind').querySelector('option[value='+key+']').disabled=key==='message_button'?isDoor:!isDoor);
+ ['message_button','message_open','message_closed','message_left_open'].forEach(key=>el('previewKind').querySelector('option[value='+key+']').disabled=key==='message_button'?isDoor:!isDoor);
  if(el('previewKind').selectedOptions[0]?.disabled)el('previewKind').value='default';
  status('');pushSettings.preview();
 }
@@ -101,20 +102,20 @@ async function load(selected){
 }
 function newDevice(type){
  editing={device_type:type,id:null,label:type==='button'?'Nieuwe knop':'Nieuwe deursensor',friendly_name:'',
- enabled:false,message_button:pushSettings.defaultMessage(),message_open:'🚨 LCP – deur ongeoorloofd geopend',message_left_open:'⚠️ LCP – deur staat al {minuten} minuten open',
- alert_open_when_armed:true,alert_open_long:true,open_limit_minutes:5,arming_mode:'auto',
- schedule:type==='contact'?[{days:[1,2,3,4,5],start:'17:00',end:'08:00'},{days:[6,7],start:'00:00',end:'00:00'}]:[]};
+ enabled:false,message_button:pushSettings.defaultMessage(),message_open:'De deur is geopend.',message_closed:'De deur is gesloten.',message_left_open:'⚠️ LCP – deur staat al {minuten} minuten open',
+ alert_open_when_armed:true,alert_closed_when_armed:true,alert_open_long:true,long_alert_uses_schedule:true,open_limit_minutes:5,arming_mode:'armed',
+ schedule:[]};
  el('deviceSelect').selectedIndex=-1;render();status('Nieuw apparaat: kies de Zigbee2MQTT-naam en sla op.');
 }
 function collect(){
  if(!editing)throw Error('Kies eerst een apparaat.');
  const x={label:el('label').value.trim(),friendly_name:el('friendly_name').value.trim(),device_type:editing.device_type,enabled:el('enabled').checked,
- message_button:el('message_button').value.trim(),message_open:el('message_open').value.trim(),message_left_open:el('message_left_open').value.trim(),
- alert_open_when_armed:el('alert_open_when_armed').checked,alert_open_long:el('alert_open_long').checked,
+ message_button:el('message_button').value.trim(),message_open:el('message_open').value.trim(),message_closed:el('message_closed').value.trim(),message_left_open:el('message_left_open').value.trim(),
+ alert_open_when_armed:el('alert_open_when_armed').checked,alert_closed_when_armed:el('alert_closed_when_armed').checked,long_alert_uses_schedule:el('long_alert_uses_schedule').checked,alert_open_long:el('alert_open_long').checked,
  open_limit_minutes:Number(el('open_limit_minutes').value),arming_mode:el('arming_mode').value,schedule:editing.device_type==='contact'?getSchedule():[]};
  if(!x.label||!x.friendly_name||x.friendly_name.includes('/'))throw Error('Vul een naam en geldige Apparaatnaam in Zigbee2MQTT zonder / in.');
  if(!Number.isInteger(x.open_limit_minutes)||x.open_limit_minutes<1||x.open_limit_minutes>1440)throw Error('Aantal minuten moet tussen 1 en 1440 liggen.');
- if([x.message_button,x.message_open,x.message_left_open].some(t=>!t||t.length>240))throw Error('Iedere meldtekst moet 1 tot 240 tekens bevatten.');
+ if([x.message_button,x.message_open,x.message_closed,x.message_left_open].some(t=>!t||t.length>240))throw Error('Iedere meldtekst moet 1 tot 240 tekens bevatten.');
  return x;
 }
 async function save(){

@@ -109,6 +109,28 @@ class PushUITests(unittest.TestCase):
         self.page.click('#resetLogo')
         self.assertEqual(self.page.get_attribute('#logoPreview','src'),'./icon-512.png')
 
+    def test_door_close_message_and_individual_options_are_saved(self):
+        self.open_settings()
+        self.page.select_option('#deviceSelect','1')
+        self.assertTrue(self.page.is_checked('#alert_closed_when_armed'))
+        self.assertEqual(self.page.input_value('#message_closed'),'Achterdeur gesloten')
+        self.page.select_option('#previewKind','message_closed')
+        self.assertEqual(self.page.text_content('#previewBody'),'Achterdeur gesloten')
+        self.page.fill('#message_closed','De nooddeur is weer dicht.')
+        self.page.uncheck('#alert_open_when_armed')
+        self.page.fill('#open_limit_minutes','8')
+        self.page.select_option('#arming_mode','armed')
+        self.page.click('#save')
+        self.page.wait_for_function("window.__lcpTest.events.some(e=>e.operation==='update' && e.table==='lcp_devices')")
+        row=self.page.evaluate("window.__lcpTest.events.find(e=>e.operation==='update' && e.table==='lcp_devices').row")
+        self.assertEqual(row['friendly_name'],'LCP_deur')
+        self.assertEqual(row['message_closed'],'De nooddeur is weer dicht.')
+        self.assertTrue(row['alert_closed_when_armed'])
+        self.assertTrue(row['long_alert_uses_schedule'])
+        self.assertFalse(row['alert_open_when_armed'])
+        self.assertEqual(row['open_limit_minutes'],8)
+        self.assertEqual(row['arming_mode'],'armed')
+
     def test_invalid_logo_is_not_uploaded(self):
         self.open_settings()
         self.page.set_input_files('#pushLogo', {'name':'fake.png','mimeType':'image/png','buffer':b'<svg><script>evil()</script></svg>'})

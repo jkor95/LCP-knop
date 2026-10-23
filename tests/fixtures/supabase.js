@@ -3,7 +3,7 @@ export function createClient(){
  const state=window.__lcpTest={events:[],calls:window.__calls || [],settings:{title:'Bestaande titel',default_message:'Bestaande standaardtekst',app_name:'LCP',icon_url:'./icon-512.png',updated_at:'2026-10-18T09:00:00Z'}};
  window.__historySince='2026-10-18T00:00:00Z';
  const devices=[{id:'button',label:'Bestaande knop',friendly_name:'LCP_knop',device_type:'button',enabled:true,message_button:'Bestaande knoptekst',message_open:'Deur geopend',message_left_open:'Deur {minuten} minuten open',open_limit_minutes:5,arming_mode:'auto',schedule:[]},
- {id:'door',label:'Achterdeur',friendly_name:'LCP_deur',device_type:'contact',enabled:true,message_button:'Oproep',message_open:'Achterdeur geopend',message_left_open:'Achterdeur {minuten} minuten open',alert_open_when_armed:true,alert_open_long:true,open_limit_minutes:5,arming_mode:'armed',schedule:[{days:[1,2,3,4,5],start:'17:00',end:'08:00'}]}];
+ {id:'door',label:'Achterdeur',friendly_name:'LCP_deur',device_type:'contact',enabled:true,message_button:'Oproep',message_open:'Achterdeur geopend',message_closed:'Achterdeur gesloten',alert_closed_when_armed:true,long_alert_uses_schedule:true,message_left_open:'Achterdeur {minuten} minuten open',alert_open_when_armed:true,alert_open_long:true,open_limit_minutes:5,arming_mode:'armed',schedule:[{days:[1,2,3,4,5],start:'17:00',end:'08:00'}]}];
  return {
   auth:{getUser:async()=>({data:{user:window.__noUser?null:{id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}}}),signOut:async()=>{},signInWithPassword:async()=>({error:null})},
   from(table){const q={table,operation:'select'};return {

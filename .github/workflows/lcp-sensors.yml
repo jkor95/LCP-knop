@@ -2,7 +2,7 @@ name: LCP sensor tests
 on:
   push:
     paths:
-      - 'windows/lcp_worker_zigbee_v2.py'
+      - 'windows/*.py'
       - 'settings.html'
       - 'app.html'
       - 'tests/**'
