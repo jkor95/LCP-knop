@@ -12,7 +12,7 @@ $install=Join-Path $root 'Werklaptop'
 New-Item -ItemType Directory -Path $package,$install | Out-Null
 $PackageDir=$package
 $script:TestInstall=$install
-$script:Starts=0;$script:Stops=0;$script:SimulateFailure=$false
+$script:Starts=0;$script:Stops=0;$script:SimulateFailure=$false;$script:RefuseStop=$false
 $python=(Get-Command python.exe).Source
 $worker=Join-Path $install 'lcp_worker.py'
 $original=@'
@@ -43,7 +43,7 @@ $script:FakeTask=[pscustomobject]@{TaskName='LCP bestaande worker';TaskPath='\';
 function Get-ScheduledTask { return $script:FakeTask }
 function Disable-ScheduledTask { param($TaskName,$TaskPath);$script:FakeTask.Settings.Enabled=$false }
 function Enable-ScheduledTask { param($TaskName,$TaskPath);$script:FakeTask.Settings.Enabled=$true }
-function Stop-ScheduledTask { param($TaskName,$TaskPath);$script:Stops++ }
+function Stop-ScheduledTask { param($TaskName,$TaskPath);$script:Stops++;if($script:RefuseStop){$script:RefuseStop=$false;throw 'Gesimuleerde taakweigering'} }
 function Export-ScheduledTask { param($TaskName,$TaskPath);return '<Task>ongewijzigde starttaak</Task>' }
 function Get-CimInstance { param($ClassName,$Filter);return @() }
 function Start-ScheduledTask {
@@ -72,6 +72,13 @@ try {
  Assert-True ([IO.File]::ReadAllText($worker) -eq $original) 'Automatisch herstel na startfout werkt niet'
  Assert-True ([IO.File]::ReadAllText($runtime) -eq '{"bestaand":"bewaren"}') 'Automatisch herstel heeft runtime veranderd'
  Assert-True $script:FakeTask.Settings.Enabled 'Bestaande taak is uitgeschakeld achtergelaten'
+ $script:SimulateFailure=$false
+ $script:RefuseStop=$true
+ $denied=$false
+ try { Invoke-LcpUpdate -Root $install } catch { $denied=$true }
+ Assert-True ($denied -and $script:FakeTask.Settings.Enabled) 'Taakweigering mag de bestaande taak niet uitgeschakeld achterlaten'
+ Assert-True ([IO.File]::ReadAllText($worker) -eq $original) 'Taakweigering mag geen worker vervangen'
+ Assert-True ((Get-FileHash (Join-Path $zigbee 'database.db')).Hash -eq $dbHash) 'Herstel heeft Zigbee-database gewijzigd'
  $before=$script:Stops
  $empty=Join-Path $root 'Onbekend'
  New-Item -ItemType Directory -Path $empty | Out-Null

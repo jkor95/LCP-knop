@@ -70,13 +70,23 @@ function Get-LcpPlan([string]$Root, [string]$RequestedWorker) {
 }
 
 function Stop-LcpWorker($Plan) {
-    Disable-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath | Out-Null
-    Stop-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath
-    foreach ($process in @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe' OR Name = 'pythonw.exe'")) {
-        $command = [string]$process.CommandLine
-        $full = $command.IndexOf($Plan.Worker, [StringComparison]::OrdinalIgnoreCase) -ge 0
-        $relative = $process.ExecutablePath -and (Split-Path $process.ExecutablePath) -eq (Split-Path $Plan.Python) -and $command.IndexOf([IO.Path]::GetFileName($Plan.Worker), [StringComparison]::OrdinalIgnoreCase) -ge 0
-        if ($full -or $relative) { Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue }
+    $disabled = $false
+    try {
+        Disable-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath | Out-Null
+        $disabled = $true
+        Stop-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath
+        foreach ($process in @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe' OR Name = 'pythonw.exe'")) {
+            $command = [string]$process.CommandLine
+            $full = $command.IndexOf($Plan.Worker, [StringComparison]::OrdinalIgnoreCase) -ge 0
+            $relative = $process.ExecutablePath -and (Split-Path $process.ExecutablePath) -eq (Split-Path $Plan.Python) -and $command.IndexOf([IO.Path]::GetFileName($Plan.Worker), [StringComparison]::OrdinalIgnoreCase) -ge 0
+            if ($full -or $relative) { Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue }
+        }
+    } catch {
+        if ($disabled) {
+            Enable-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath | Out-Null
+            Start-ScheduledTask -TaskName $Plan.Task.TaskName -TaskPath $Plan.Task.TaskPath
+        }
+        throw 'De bestaande taak kon niet veilig worden gestopt. Er is geen worker vervangen. Start de update zo nodig als beheerder met hetzelfde Windows-account.'
     }
 }
 
@@ -156,8 +166,8 @@ function Invoke-LcpUpdateCore([string]$Root, [string]$RequestedWorker, [switch]$
         @{ worker=$plan.Worker;sha256=(Get-FileHash -LiteralPath $plan.Worker -Algorithm SHA256).Hash;task=$plan.Task.TaskName;taskPath=$plan.Task.TaskPath } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $backup 'backup.json') -Encoding UTF8
         if ((Get-FileHash -LiteralPath (Join-Path $backup 'worker.py') -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $plan.Worker -Algorithm SHA256).Hash) { throw 'De back-upcontrole is mislukt. De bestaande worker blijft actief.' }
         Write-Host 'Back-up gemaakt. Alleen de bestaande LCP-worker wordt kort herstart.'
-        $stopped = $true
         Stop-LcpWorker $plan
+        $stopped = $true
         Copy-Item -LiteralPath (Join-Path $stage 'worker.py') -Destination $plan.Worker -Force
         Copy-Item -LiteralPath $newRuntime -Destination $plan.Runtime -Force
         $started = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() / 1000.0

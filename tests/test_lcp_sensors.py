@@ -1,6 +1,7 @@
 import copy
 import os
 import sys
+import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -70,6 +71,16 @@ class SensorTests(unittest.TestCase):
         worker.handle_event('LCP nooddeur/availability',{'state':'offline'},False)
         self.event(worker,True)
         self.assertFalse(worker.states['LCP nooddeur']['closed'])
+
+    def test_second_worker_cannot_start_for_same_installation(self):
+        first,_=self.make_worker()
+        second,_=self.make_worker()
+        with tempfile.TemporaryDirectory() as folder, patch('lcp_worker_zigbee_v2.STATE_FILE',Path(folder)/'state.json'):
+            try:
+                self.assertTrue(first.acquire_lock())
+                self.assertFalse(second.acquire_lock())
+            finally:
+                first.lock_file.close()
 
     def test_manual_override(self):
         self.assertTrue(schedule_active({'arming_mode': 'armed', 'schedule': []}))

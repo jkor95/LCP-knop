@@ -45,6 +45,9 @@ taakinstellingen. Alleen de worker en een apart bestand met runtime-instellingen
 worden geplaatst. De Zigbee-database, coordinator-back-up, Zigbee2MQTT-configuratie,
 USB-dongle en COM3 worden niet vervangen. Er wordt geen tweede worker gestart.
 
+Als Windows onvoldoende rechten voor de bestaande starttaak meldt, start het
+updatebestand als beheerder **met hetzelfde Windows-account**.
+
 Als worker, inlogmethode, extra MQTT-beveiliging of starttaak niet herkenbaar is,
 **stopt de update zonder vervanging**. Bewaar dan de zichtbare melding. Een
 installatie met een afwijkende beveiligde aanmelding moet eerst daarop worden
