@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 const {PGlite}=await import(process.env.LCP_PGLITE_MODULE || '@electric-sql/pglite');
 const migration=await readFile(new URL('../supabase/migrations/202610230001_door_sensors.sql',import.meta.url),'utf8');
 const secondMigration=await readFile(new URL('../supabase/migrations/202610230002_second_door_warning.sql',import.meta.url),'utf8');
+const tamperMigration=await readFile(new URL('../supabase/migrations/202610230003_sensor_tamper.sql',import.meta.url),'utf8');
 const ADMIN='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',VIEWER='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 async function fixture(){
  const db=new PGlite();await db.exec(`
@@ -29,7 +30,7 @@ async function fixture(){
  create table push_counter(event uuid);
  create function count_push() returns trigger language plpgsql security definer as $$begin insert into public.push_counter values(new.id);return new;end$$;
  create trigger existing_push after insert on public.lcp_calls for each row execute function count_push();
- `);await db.exec(migration);await db.exec(secondMigration);return db;
+ `);await db.exec(migration);await db.exec(secondMigration);await db.exec(tamperMigration);return db;
 }
 async function as(db,role,uid=''){await db.exec(`reset role;set role ${role};set request.jwt.claim.sub='${uid}';`);}
 async function emit(db,kind='opened',name='LCP nooddeur',key='cccccccc-cccc-cccc-cccc-cccccccccccc'){
@@ -48,7 +49,7 @@ test('vier standaarddeuren worden toegevoegd; bestaande knop en sensor blijven b
   }
   await db.exec("update public.lcp_devices set message_closed='Eigen tekst',enabled=false where friendly_name='LCP kantoor'");
   const before=(await db.query('select * from public.lcp_devices order by friendly_name')).rows;
-  await db.exec(migration);await db.exec(secondMigration);
+  await db.exec(migration);await db.exec(secondMigration);await db.exec(tamperMigration);
   assert.deepEqual((await db.query('select * from public.lcp_devices order by friendly_name')).rows,before);
  }finally{await db.close();}
 });
@@ -67,6 +68,23 @@ test('tweede waarschuwing gebruikt eigen tijd en tekst, behoudt keuzes en maakt 
   const d=(await db.query("select * from public.lcp_devices where friendly_name='LCP nooddeur'")).rows[0];
   assert.equal(d.second_open_limit_minutes,0);assert.equal(d.message_second_open,'Eigen tekst');
   assert.equal((await db.query('select count(*)::int as n from push_counter')).rows[0].n,1);
+ }finally{await db.close();}
+});
+test('sabotage meldt 24/7 met sensornaam, behoudt RLS en eigen keuzes',async()=>{
+ const db=await fixture();try{
+  await as(db,'authenticated',ADMIN);
+  await db.exec("update public.lcp_devices set arming_mode='disarmed',label='Kantoordeur' where friendly_name='LCP kantoor'");
+  assert.equal(await emit(db,'tamper','LCP kantoor'),true);
+  assert.equal(await emit(db,'tamper','LCP kantoor'),false);
+  assert.equal((await db.query('select message from public.lcp_calls')).rows[0].message,'Sabotage gedetecteerd bij Kantoordeur. Controleer de sensor en bevestiging.');
+  assert.equal(await emit(db,'tamper','LCP reserve'),false);
+  await db.exec("update public.lcp_devices set alert_tamper=false,message_tamper='Eigen sabotagetekst' where friendly_name='LCP kantoor'");
+  assert.equal(await emit(db,'tamper','LCP kantoor','dddddddd-dddd-dddd-dddd-dddddddddddd'),false);
+  await as(db,'postgres');await db.exec(tamperMigration);
+  const d=(await db.query("select alert_tamper,message_tamper from public.lcp_devices where friendly_name='LCP kantoor'")).rows[0];
+  assert.equal(d.alert_tamper,false);assert.equal(d.message_tamper,'Eigen sabotagetekst');
+  await as(db,'authenticated',VIEWER);await assert.rejects(emit(db,'tamper'),{code:'42501'});
+  assert.equal((await db.query("update public.lcp_devices set alert_tamper=true returning id")).rows.length,0);
  }finally{await db.close();}
 });
 test('herhaald aanbieden van een gebeurtenis maakt exact één oproep en push aan',async()=>{

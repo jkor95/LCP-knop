@@ -38,7 +38,7 @@ $configHash=(Get-FileHash (Join-Path $zigbee 'configuration.yaml')).Hash
 foreach($name in @('lcp_worker_zigbee_v2.py','check_lcp_installation.py')) { Copy-Item (Join-Path $repo "windows\$name") (Join-Path $package $name) }
 $hashes=@{}
 foreach($name in @('lcp_worker_zigbee_v2.py','check_lcp_installation.py')) { $hashes[$name]=(Get-FileHash (Join-Path $package $name)).Hash }
-@{version='3.1.0';files=$hashes} | ConvertTo-Json | Set-Content (Join-Path $package 'manifest.json')
+@{version='3.2.0';files=$hashes} | ConvertTo-Json | Set-Content (Join-Path $package 'manifest.json')
 $script:FakeTask=[pscustomobject]@{TaskName='LCP bestaande worker';TaskPath='\';Settings=[pscustomobject]@{Enabled=$true};Actions=@([pscustomobject]@{Execute=$python;Arguments=('"'+(Join-Path $install 'start_lcp.py')+'"');WorkingDirectory=$install})}
 $script:UnrelatedTasks=@(
  [pscustomobject]@{TaskName='COM-systeemtaak';Actions=@([pscustomobject]@{Execute=$null;Arguments=$null;WorkingDirectory=$null})},
@@ -59,7 +59,7 @@ function Get-CimInstance { param($ClassName,$Filter);return @() }
 function Start-ScheduledTask {
  param($TaskName,$TaskPath)
  $script:Starts++
- @{version='3.1.0';heartbeat=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);started_at=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);last_config_sync=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);mqtt_connected=$true;devices=@('LCP_knop','LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve')} | ConvertTo-Json | Set-Content (Join-Path $script:TestInstall 'sensor_worker_health.json')
+ @{version='3.2.0';heartbeat=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);started_at=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);last_config_sync=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0);mqtt_connected=$true;devices=@('LCP_knop','LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve')} | ConvertTo-Json | Set-Content (Join-Path $script:TestInstall 'sensor_worker_health.json')
 }
 $script:RealWait=(Get-Item Function:\Wait-LcpHealth).ScriptBlock
 function Wait-LcpHealth($Plan,$Started) {
@@ -166,7 +166,7 @@ def worker():
  Assert-True ($script:Starts -eq $startsBefore -and $script:Stops -eq $stopsBefore) 'Opstarten-herstel mag geen taken of processen herstarten'
  # Een oude status, zelfs met alle namen, is geen bewijs van een actieve worker.
  $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0
- $health=@{version='3.1.0';heartbeat=$now-120;started_at=$now-600;last_config_sync=$now; mqtt_connected=$true;devices=@('LCP_knop','LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve')}
+ $health=@{version='3.2.0';heartbeat=$now-120;started_at=$now-600;last_config_sync=$now; mqtt_connected=$true;devices=@('LCP_knop','LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve')}
  $health | ConvertTo-Json | Set-Content (Join-Path $startup 'sensor_worker_health.json')
  Assert-True (-not (Test-LcpHealth ([pscustomobject]@{Root=$startup}) 0)) 'Verouderde hartslag mag niet goedgekeurd worden'
  $health.heartbeat=$now

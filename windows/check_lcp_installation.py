@@ -33,7 +33,7 @@ def inspect_worker(path, launcher_manages_mqtt=False):
     imports = {node.name for item in ast.walk(tree) if isinstance(item, ast.Import) for node in item.names}
     if not {'LCP_EMAIL', 'LCP_PASSWORD', 'LCP_PUBLISHABLE_KEY'}.issubset(strings) or 'paho.mqtt.client' not in imports:
         raise ValueError('De bestaande worker gebruikt een andere inlog- of MQTT-methode. Er is niets vervangen. Laat de installatiemap eerst controleren.')
-    if strings.intersection({'3.0.0', '3.1.0'}) and '/rest/v1/rpc/lcp_emit_sensor_event' in strings:
+    if strings.intersection({'3.0.0', '3.1.0', '3.2.0'}) and '/rest/v1/rpc/lcp_emit_sensor_event' in strings:
         config = Path(path).with_name('lcp_sensor_runtime.json')
         existing = json.loads(config.read_text(encoding='utf-8-sig')) if config.exists() else {}
         result = {key: existing.get(key, default) for key, default in [('mqtt_host','127.0.0.1'),('mqtt_port',1883),('topic_prefix','zigbee2mqtt/')]}

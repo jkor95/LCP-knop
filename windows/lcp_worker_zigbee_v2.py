@@ -22,7 +22,7 @@ MQTT_HOST = "127.0.0.1"
 MQTT_PORT = 1883
 SYNC_SECONDS = 15
 BUTTON_DEBOUNCE = 2.0
-WORKER_VERSION = "3.1.0"
+WORKER_VERSION = "3.2.0"
 RUNTIME_FILE = Path(__file__).with_name("lcp_sensor_runtime.json")
 try:
     RUNTIME = json.loads(RUNTIME_FILE.read_text(encoding="utf-8-sig"))
@@ -116,6 +116,7 @@ class LCPWorker:
         self.last_press = {}
         self.states = self.load_states()
         self.confirmed = set()
+        self.tamper_confirmed = set()
         self.open_since = {}
         self.pending = []
         self.retry_at = 0
@@ -142,8 +143,9 @@ class LCPWorker:
         try:
             raw = json.loads(STATE_FILE.read_text(encoding="utf-8"))
             if isinstance(raw, dict):
-                return {name: {"closed": value["closed"], "open_at": None, "long_sent": value.get("long_sent") is True, "second_sent": value.get("second_sent") is True}
-                        for name, value in raw.items() if isinstance(value, dict) and isinstance(value.get("closed"), bool)}
+                return {name: {"closed": value.get("closed"), "open_at": None, "long_sent": value.get("long_sent") is True, "second_sent": value.get("second_sent") is True,
+                               "tamper": value.get("tamper") if isinstance(value.get("tamper"), bool) else None}
+                        for name, value in raw.items() if isinstance(value, dict) and (isinstance(value.get("closed"), bool) or isinstance(value.get("tamper"), bool))}
         except (OSError, ValueError):
             pass
         return {}
@@ -212,6 +214,8 @@ class LCPWorker:
             old = self.devices.get(name)
             if old is None or bool(old.get("enabled")) != bool(device.get("enabled")):
                 self.invalidate(name)
+            elif bool(old.get("alert_tamper")) != bool(device.get("alert_tamper")):
+                self.tamper_confirmed.discard(name)
         self.devices = settings
         self.last_config_sync = time.time()
 
@@ -232,6 +236,7 @@ class LCPWorker:
         names = [name] if name else list(self.states)
         for key in names:
             self.confirmed.discard(key)
+            self.tamper_confirmed.discard(key)
             self.open_since.pop(key, None)
             if key in self.states:
                 self.states[key]["open_at"] = None
@@ -287,7 +292,7 @@ class LCPWorker:
             return
         event = self.pending[0]
         device = self.devices.get(event["name"], {})
-        if not device.get("enabled") or (event["kind"] in ("left_open", "left_open_again") and self.states.get(event["name"], {}).get("closed") is not False):
+        if not device.get("enabled") or (event["kind"] in ("left_open", "left_open_again") and self.states.get(event["name"], {}).get("closed") is not False) or (event["kind"] == "tamper" and (not device.get("alert_tamper") or self.states.get(event["name"], {}).get("tamper") is not True)):
             self.pending.pop(0)
             return
         try:
@@ -326,9 +331,12 @@ class LCPWorker:
             self.last_press[name] = now
             self.send(name, device.get("message_button", "LCP oproep (zigbee)"))
             return
-        if device.get("device_type") != "contact" or not isinstance(data.get("contact"), bool):
+        if device.get("device_type") != "contact":
             return
         if not self.connected or self.availability.get("bridge/state") == "offline" or self.availability.get(name + "/availability") == "offline":
+            return
+        self.handle_tamper(name, device, data, retained)
+        if not isinstance(data.get("contact"), bool):
             return
         closed = data["contact"]  # Zigbee2MQTT: true=dicht, false=open.
         previous = self.states.get(name, {})
@@ -337,9 +345,9 @@ class LCPWorker:
         if retained or name not in self.confirmed or not device.get("enabled"):
             # De eerste actuele status is uitsluitend een uitgangsstatus. Een bewaarde
             # openstatus start geen timer. Na herstart wordt nooit tijd teruggeteld.
-            self.states[name] = {"closed": closed, "open_at": None,
+            self.states.setdefault(name, {}).update({"closed": closed, "open_at": None,
                 "long_sent": bool(previous.get("long_sent")) if previous.get("closed") is False and not closed else False,
-                "second_sent": bool(previous.get("second_sent")) if previous.get("closed") is False and not closed else False}
+                "second_sent": bool(previous.get("second_sent")) if previous.get("closed") is False and not closed else False})
             if not retained and device.get("enabled"):
                 self.confirmed.add(name)
                 if not closed:
@@ -352,7 +360,7 @@ class LCPWorker:
             return
         if previous.get("closed") is closed:
             return
-        self.states[name] = {"closed": closed, "open_at": None if closed else time.time(), "long_sent": False, "second_sent": False}
+        self.states.setdefault(name, {}).update({"closed": closed, "open_at": None if closed else time.time(), "long_sent": False, "second_sent": False})
         if closed:
             self.open_since.pop(name, None)
             self.pending = [event for event in self.pending if not (event["name"] == name and event["kind"] in ("left_open", "left_open_again"))]
@@ -362,6 +370,28 @@ class LCPWorker:
         flag = "alert_closed_when_armed" if closed else "alert_open_when_armed"
         if device.get(flag, False if closed else True) and schedule_active(device):
             self.queue_sensor(name, "closed" if closed else "opened")
+
+    def handle_tamper(self, name, device, data, retained):
+        tamper = data.get("tamper")
+        if not isinstance(tamper, bool):
+            return  # Een ontbrekende of onbekende status betekent niet 'veilig'.
+        state = self.states.setdefault(name, {})
+        previous = state.get("tamper")
+        if retained and name in self.tamper_confirmed:
+            return
+        baseline = retained or name not in self.tamper_confirmed or not device.get("enabled") or not device.get("alert_tamper")
+        state["tamper"] = tamper
+        if baseline:
+            if not retained and device.get("enabled") and device.get("alert_tamper"):
+                self.tamper_confirmed.add(name)
+            else:
+                self.tamper_confirmed.discard(name)
+        if tamper is False:
+            self.pending = [event for event in self.pending if not (event["name"] == name and event["kind"] == "tamper")]
+        if previous is not tamper:
+            self.save_states()
+        if not baseline and previous is False and tamper:
+            self.queue_sensor(name, "tamper")
 
     def check_open_timers(self):
         if not self.connected or self.resync_needed:

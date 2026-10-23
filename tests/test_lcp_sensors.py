@@ -18,6 +18,71 @@ SCHEDULE = [
 ]
 
 class SensorTests(unittest.TestCase):
+    def test_tamper_payload_without_contact_alerts_once_per_incident_24_7(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur'].update(alert_tamper=True,arming_mode='disarmed')
+        worker.handle_event('LCP nooddeur',{'tamper':False},False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        worker.handle_event('LCP nooddeur',{'battery':80},False)
+        worker.handle_event('LCP nooddeur',{'tamper':'false'},False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.assertEqual(self.kinds(sent),['tamper'])
+        worker.handle_event('LCP nooddeur',{'tamper':False},False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.assertEqual(self.kinds(sent),['tamper','tamper'])
+        self.assertNotEqual(sent[0]['p_event_key'],sent[1]['p_event_key'])
+
+    def test_retained_startup_and_reconnect_tamper_are_only_baselines(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur']['alert_tamper']=True
+        worker.handle_event('LCP nooddeur',{'tamper':True},True)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        worker.invalidate()
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.assertEqual(self.kinds(sent),[])
+        worker.handle_event('LCP nooddeur',{'tamper':False},False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        worker.handle_event('LCP nooddeur',{'tamper':False},True)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.assertEqual(self.kinds(sent),['tamper'])
+
+    def test_tamper_does_not_reset_door_or_open_timers(self):
+        worker,sent=self.make_worker()
+        worker.devices['LCP nooddeur'].update(alert_tamper=True,second_open_limit_minutes=10)
+        worker.handle_event('LCP nooddeur',{'contact':True,'tamper':False},False)
+        self.event(worker,False)
+        worker.handle_event('LCP nooddeur',{'tamper':True},False)
+        self.now+=300
+        worker.check_open_timers()
+        self.now+=300
+        worker.check_open_timers()
+        self.event(worker,True)
+        worker.handle_event('LCP nooddeur',{'contact':True,'tamper':True},False)
+        self.assertEqual(self.kinds(sent),['opened','tamper','left_open','left_open_again','closed'])
+        self.assertTrue(worker.states['LCP nooddeur']['tamper'])
+
+    def test_disabled_tamper_and_reserve_never_notify(self):
+        for enabled,alert in [(False,True),(True,False)]:
+            with self.subTest(enabled=enabled,alert=alert):
+                worker,sent=self.make_worker()
+                worker.devices['LCP nooddeur'].update(enabled=enabled,alert_tamper=alert)
+                for value in [False,True,False,True]:
+                    worker.handle_event('LCP nooddeur',{'tamper':value},False)
+                self.assertEqual(self.kinds(sent),[])
+
+    def test_tamper_only_state_is_persisted_and_loaded(self):
+        with tempfile.TemporaryDirectory() as folder:
+            file=Path(folder)/'state.json'
+            with patch('lcp_worker_zigbee_v2.STATE_FILE',file):
+                worker,_=self.make_worker()
+                worker.devices['LCP nooddeur']['alert_tamper']=True
+                worker.handle_event('LCP nooddeur',{'tamper':False},False)
+                LCPWorker.save_states(worker)
+                loaded=LCPWorker.load_states(worker)
+                self.assertFalse(loaded['LCP nooddeur']['tamper'])
+                self.assertIsNone(loaded['LCP nooddeur']['closed'])
+
     def test_second_warning_at_ten_minutes_once_and_close_cancels_both(self):
         worker,sent=self.make_worker()
         worker.devices['LCP nooddeur']['second_open_limit_minutes']=10

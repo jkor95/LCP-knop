@@ -65,6 +65,7 @@ def prepare(token):
     request(token,'/database/query',{'query':Path('supabase/migrations/202610180003_call_history.sql').read_text()})
     request(token,'/database/query',{'query':Path('supabase/migrations/202610230001_door_sensors.sql').read_text()})
     request(token,'/database/query',{'query':Path('supabase/migrations/202610230002_second_door_warning.sql').read_text()})
+    request(token,'/database/query',{'query':Path('supabase/migrations/202610230003_sensor_tamper.sql').read_text()})
     root=Path(os.environ.get('RUNNER_TEMP','/tmp'))
     private_json(root/'lcp-deployment-private.json',bindings)
     print('Bestaande sleutels veilig hergebruikt en aanvullende instellingen transactioneel geactiveerd.')

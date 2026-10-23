@@ -10,7 +10,7 @@ FILES=['Update-LCP-Deursensoren.ps1','Update-LCP-Deursensoren.cmd','Herstel-LCP-
 def build():
     files={name:(ROOT/'windows'/name).read_bytes() for name in FILES}
     files['LEESMIJ.md']=(ROOT/'windows/README_deursensoren.md').read_bytes()
-    files['manifest.json']=json.dumps({'version':'3.1.0','files':{name:hashlib.sha256(files[name]).hexdigest() for name in ['lcp_worker_zigbee_v2.py','check_lcp_installation.py']}},indent=2).encode()
+    files['manifest.json']=json.dumps({'version':'3.2.0','files':{name:hashlib.sha256(files[name]).hexdigest() for name in ['lcp_worker_zigbee_v2.py','check_lcp_installation.py']}},indent=2).encode()
     target=ROOT/'downloads/LCP-deursensor-update.zip'
     target.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(target,'w',compression=zipfile.ZIP_DEFLATED) as archive:

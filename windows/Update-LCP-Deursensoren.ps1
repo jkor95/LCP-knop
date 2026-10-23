@@ -178,7 +178,7 @@ function Test-LcpHealth($Plan, [double]$Started) {
         $status = Get-Content -LiteralPath $health -Raw | ConvertFrom-Json
         $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() / 1000.0
         $names = @('LCP_knop','LCP kantoor','LCP nooddeur','TRAP nooddeur','LCP reserve')
-        return ($status.version -eq '3.1.0' -and $status.started_at -ge $Started -and $status.mqtt_connected -and $status.last_config_sync -ge $Started -and $status.last_config_sync -ge ($now - 90) -and $status.heartbeat -ge ($now - 30) -and $status.heartbeat -le ($now + 10) -and @($names | Where-Object { $_ -notin $status.devices }).Count -eq 0)
+        return ($status.version -eq '3.2.0' -and $status.started_at -ge $Started -and $status.mqtt_connected -and $status.last_config_sync -ge $Started -and $status.last_config_sync -ge ($now - 90) -and $status.heartbeat -ge ($now - 30) -and $status.heartbeat -le ($now + 10) -and @($names | Where-Object { $_ -notin $status.devices }).Count -eq 0)
     } catch { return $false }
 }
 

@@ -25,6 +25,30 @@ beheerpagina pas je de **Naam in LCP** vrij aan; de bestaande Zigbee-koppeling
 blijft vaststaan. Per deur kun je openen/sluiten, de timer, teksten en meldtijden
 apart instellen. Kies **Volgens weekschema** voor optionele tijdvakken.
 
+## Sabotagecontact
+
+De SONOFF SNZB-04PR2 publiceert via Zigbee2MQTT de booleaanse eigenschap `tamper`.
+Voor de drie actieve sensoren staat een sabotagemelding standaard aan; voor de
+reserve staat die uit. Op de beheerpagina kun je dit per sensor uitschakelen en
+de meldingstekst aanpassen. `{naam}` wordt vervangen door de naam in LCP.
+
+Sabotagemeldingen gelden 24 uur per dag, onafhankelijk van de deurstand en het
+weekschema, zolang het apparaat actief is. Alleen een bevestigde overgang van
+`tamper: false` naar `tamper: true` geeft een melding. Herhaalde statusberichten
+geven geen extra melding; herstel naar false maakt een nieuw incident mogelijk.
+Ook berichten zonder deurstand worden verwerkt. De eerste actuele status na
+opstarten of een verbindingsonderbreking vormt alleen de uitgangsstatus; een
+bewaard MQTT-bericht geeft geen alarm. Een ontbrekende eigenschap wordt niet
+als veilig beschouwd. Het contact detecteert sabotage van de behuizing, niet
+gegarandeerd iedere manier waarop de sensor van de deur kan worden verwijderd.
+
+Test na de update eerst de normale knop/deuren. Controleer daarna bij een
+bevestigde normale sabotagestatus voorzichtig het sabotagecontact van de
+behuizing en herstel dit weer. Forceer de behuizing of bevestiging niet. Laat
+dit achterwege als de sensor nog niet veilig toegankelijk is. Controleer in
+Zigbee2MQTT of `tamper` daadwerkelijk van false naar true verandert en of de
+iPhone één melding ontvangt.
+
 ## Eenmalig bijwerken op de werklaptop
 
 1. Meld je aan met **hetzelfde Windows-account** waarmee LCP normaal draait.
